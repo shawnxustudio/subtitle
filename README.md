@@ -61,16 +61,6 @@ python subtitle_app.py
 
 > **注意**：不使用 Emby 功能时，`EMBY_URL` 和 `EMBY_API_KEY` 仍需在 `.env` 中填写（可填占位值）。
 
-## Docker 部署
-
-如果 Emby 运行在 Docker 中，需要配置路径映射，使本工具能访问 Emby 容器内的媒体文件：
-
-```
-DOCKER_PATH_MAP=/media:/mnt/media
-```
-
-格式为 `容器内路径:宿主机路径`，多个映射用分号分隔。
-
 ## 使用说明
 
 ### 文件翻译
