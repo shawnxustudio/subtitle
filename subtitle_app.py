@@ -12,44 +12,41 @@ app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
 # ========== 配置区域 ==========
-EMBY_URL     = os.environ["EMBY_URL"]
-EMBY_API_KEY = os.environ["EMBY_API_KEY"]
+EMBY_URL     = os.environ.get("EMBY_URL", "")
+EMBY_API_KEY = os.environ.get("EMBY_API_KEY", "")
 
-_proxy = os.environ["PROXY_HOST"]
-PROXIES = {
-    "http":  _proxy,
-    "https": _proxy,
-}
+_proxy = os.environ.get("PROXY_HOST", "")
+PROXIES = {"http": _proxy, "https": _proxy} if _proxy else {}
 
 # ★ AI 服务商 API Keys
 AI_KEYS = {
     "siliconflow": {
-        "key":      os.environ["SILICONFLOW_KEY"],
+        "key":      os.environ.get("SILICONFLOW_KEY", ""),
         "base_url": "https://api.siliconflow.cn/v1",
         "type":     "openai",
     },
     "aliyun": {
-        "key":      os.environ["ALIYUN_KEY"],
+        "key":      os.environ.get("ALIYUN_KEY", ""),
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "type":     "openai",
     },
     "moonshot": {
-        "key":      os.environ["MOONSHOT_KEY"],
+        "key":      os.environ.get("MOONSHOT_KEY", ""),
         "base_url": "https://api.moonshot.cn/v1",
         "type":     "openai",
     },
     "zhipu": {
-        "key":      os.environ["ZHIPU_KEY"],
+        "key":      os.environ.get("ZHIPU_KEY", ""),
         "base_url": "https://open.bigmodel.cn/api/paas/v4",
         "type":     "openai",
     },
     "gemini": {
-        "key":      os.environ["GEMINI_KEY"],
+        "key":      os.environ.get("GEMINI_KEY", ""),
         "base_url": "",
         "type":     "gemini",
     },
     "openrouter": {
-        "key":      os.environ["OPENROUTER_KEY"],
+        "key":      os.environ.get("OPENROUTER_KEY", ""),
         "base_url": "https://openrouter.ai/api/v1",
         "type":     "openai",
         "extra_headers": {
@@ -441,6 +438,8 @@ def proxy_emby_image():
     tag     = request.args.get("tag", "")
     if not item_id:
         return "", 400
+    if not EMBY_URL or not EMBY_API_KEY:
+        return jsonify({"error": "Emby 未配置，请在 .env 中填写 EMBY_URL 和 EMBY_API_KEY"}), 503
     emby_url = f"{EMBY_URL}/Items/{item_id}/Images/Primary"
     params   = {"api_key": EMBY_API_KEY, "maxHeight": "300"}
     if tag:
@@ -486,6 +485,9 @@ def ai_proxy():
 
     cfg     = AI_KEYS[provider]
     api_key = cfg["key"]
+
+    if not api_key:
+        return jsonify({"error": f"{provider} 的 API Key 未配置，请在 .env 中填写"}), 400
 
     try:
         if cfg["type"] == "gemini":
@@ -553,6 +555,8 @@ def subtitle_health():
 
 @app.route("/api/subtitle/library")
 def subtitle_library():
+    if not EMBY_URL or not EMBY_API_KEY:
+        return jsonify({"error": "Emby 未配置，请在 .env 中填写 EMBY_URL 和 EMBY_API_KEY"}), 503
     cached = _mem_get("subtitle_library")
     if cached is not None:
         return jsonify({"items": cached, "count": len(cached)}), 200
@@ -566,6 +570,8 @@ def subtitle_library():
 
 @app.route("/api/subtitle/episodes", methods=["POST"])
 def subtitle_episodes():
+    if not EMBY_URL or not EMBY_API_KEY:
+        return jsonify({"error": "Emby 未配置，请在 .env 中填写 EMBY_URL 和 EMBY_API_KEY"}), 503
     body        = request.json or {}
     tmdbid      = body.get("tmdbid", "").strip()
     series_path = body.get("series_path", "").strip()
