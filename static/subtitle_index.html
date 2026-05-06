@@ -1,0 +1,2230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>字幕机翻</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════
+   CSS 变量系统
+══════════════════════════════════════════════ */
+:root {
+    --bg-base: #f0eff5;
+    --glass:         rgba(255,255,255,0.62);
+    --glass-hover:   rgba(255,255,255,0.80);
+    --glass-active:  rgba(255,255,255,0.92);
+    --glass-border:  rgba(180,174,210,0.28);
+    --glass-border2: rgba(150,140,200,0.42);
+    --text:       #1c1a2e;
+    --text-muted: #6b6585;
+    --text-dim:   #a8a4be;
+    --accent:        #4a4acb;
+    --accent2:       #3f3fb0;
+    --accent-light:  #ededff;
+    --accent-glow:   rgba(91,91,214,0.18);
+    --accent-dim:    rgba(91,91,214,0.10);
+    --accent-border: rgba(91,91,214,0.35);
+    --success:        #1a9e6e;
+    --success-light:  #edfaf4;
+    --success-border: rgba(26,158,110,0.28);
+    --warning:        #c07c10;
+    --warning-light:  #fef9ec;
+    --warning-border: rgba(192,124,16,0.28);
+    --info:           #2b6cb0;
+    --info-light:     #ebf4ff;
+    --info-border:    rgba(43,108,176,0.24);
+    --error:          #c0392b;
+    --radius-sm: 9px;
+    --radius:    15px;
+    --radius-lg: 20px;
+    --radius-xl: 26px;
+    --shadow-sm: 0 1px 4px rgba(80,70,160,0.06), 0 2px 12px rgba(80,70,160,0.05);
+    --shadow:    0 4px 16px rgba(80,70,160,0.09), 0 1px 4px rgba(80,70,160,0.05);
+    --shadow-lg: 0 12px 40px rgba(80,70,160,0.14), 0 2px 8px rgba(80,70,160,0.07);
+    --glow:      0 0 0 3px rgba(91,91,214,0.10);
+    --blur:    blur(12px) saturate(145%);
+    --scroll-gap: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    min-height: 100%;
+    background: var(--bg-base);
+    background-image:
+        radial-gradient(ellipse 80% 60% at 18% 12%, rgba(200,195,255,0.28) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 70% at 82% 85%, rgba(190,210,255,0.22) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 55% 50%, rgba(220,215,255,0.12) 0%, transparent 60%);
+    background-attachment: fixed;
+    font-family: 'Noto Serif SC', serif;
+    color: var(--text);
+    overflow-x: hidden;
+}
+
+/* ── 导航胶囊 ── */
+.nav-float {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 1000;
+    display: flex; align-items: center; gap: 2px;
+    padding: 5px;
+    border-radius: 999px;
+    background: linear-gradient(158deg, rgba(255,255,255,0.40) 0%, rgba(245,243,255,0.18) 35%, rgba(210,205,250,0.16) 65%, rgba(255,255,255,0.26) 100%);
+    backdrop-filter: blur(20px) saturate(170%);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    border: 1px solid rgba(200,196,230,0.38);
+    box-shadow: 0 8px 32px rgba(80,70,160,0.14), 0 1px 0 rgba(255,255,255,0.85) inset, 0 -1px 0 rgba(140,130,200,0.12) inset;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.lg-indicator {
+    position: absolute; top: 5px; height: calc(100% - 10px);
+    border-radius: 15px;
+    background: linear-gradient(150deg, rgba(255,255,255,0.92) 0%, rgba(240,237,255,0.74) 50%, rgba(255,255,255,0.84) 100%);
+    box-shadow: 0 2px 10px rgba(80,70,160,0.10), inset 0 0.5px 0 rgba(255,255,255,0.95);
+    pointer-events: none;
+    z-index: 0;
+    will-change: left, width;
+}
+.lg-shine {
+    position: absolute; inset: 0; border-radius: 999px; pointer-events: none; z-index: 2;
+    overflow: hidden;
+}
+.lg-shine::after {
+    content: ''; position: absolute;
+    top: -50%; left: -80%; width: 60%; height: 200%;
+    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.38) 50%, transparent 80%);
+    transform: skewX(-18deg);
+}
+.lg-shine.run::after {
+    animation: lgShineAnim 0.55s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+@keyframes lgShineAnim {
+    from { left: -80%; }
+    to   { left: 120%; }
+}
+
+.page-switch-btn {
+    position: relative; z-index: 1;
+    background: transparent; border: none;
+    font-family: 'Noto Serif SC', serif; font-size: 0.82rem; font-weight: 600;
+    color: var(--text-muted); padding: 8px 16px;
+    border-radius: 15px; cursor: pointer;
+    transition: color 0.22s ease;
+    white-space: nowrap;
+}
+.page-switch-btn:hover { color: var(--text); }
+.page-switch-btn.active { color: var(--text); }
+
+/* ── 内容区 ── */
+.page-content { display: none; padding-top: 60px; }
+.page-content.active { display: block; }
+
+.content-area {
+    max-width: 960px; margin: 0 auto; padding: 24px 18px 40px;
+}
+
+/* ── Toast ── */
+.toast-container {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    pointer-events: none;
+}
+.toast {
+    background: rgba(28,26,46,0.88);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    color: white; padding: 10px 20px; border-radius: 999px;
+    font-size: 0.82rem; font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+    animation: toastIn 0.32s cubic-bezier(0.34,1.3,0.55,1) both;
+    pointer-events: auto;
+    white-space: nowrap;
+}
+.toast.success { background: rgba(26,110,80,0.92); }
+.toast.error   { background: rgba(160,40,30,0.92); }
+.toast.info    { background: rgba(43,80,160,0.90); }
+@keyframes toastIn { from { opacity:0; transform:translateY(12px) scale(0.92); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes toastOut { to { opacity:0; transform:translateY(8px) scale(0.94); pointer-events:none; } }
+
+.spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--glass-border2);
+    border-top-color: var(--accent);
+    animation: spin 0.75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══ 字幕机翻页面内容 ══ */
+#subtitlePage .content-area { padding-top: 88px; }
+.st-layout {}
+.st-content-area { min-width: 0; }
+
+/* ── 步骤条 ── */
+.st-stepper {
+    display: flex; align-items: center; gap: 0;
+    background: var(--glass);
+    backdrop-filter: blur(12px) saturate(145%);
+    -webkit-backdrop-filter: blur(12px) saturate(145%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow), inset 0 0.5px 0 rgba(255,255,255,0.9);
+    padding: 5px;
+    margin-bottom: 18px;
+    overflow: hidden;
+}
+.st-step {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 9px 10px; border-radius: var(--radius-lg);
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--text-dim);
+    transition: all 0.28s cubic-bezier(0.22,1,0.36,1);
+    white-space: nowrap; cursor: default;
+}
+.st-step-num {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--glass-border2); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; flex-shrink: 0;
+    transition: all 0.28s ease;
+}
+.st-step.active { background: var(--accent-light); color: var(--accent); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.9); }
+.st-step.active .st-step-num { background: var(--accent); }
+.st-step.done { color: var(--success); }
+.st-step.done .st-step-num { background: var(--success); }
+.st-step-label { display: none; }
+@media (min-width: 540px) { .st-step-label { display: inline; } }
+.st-step-connector { width: 1px; height: 20px; background: var(--glass-border); flex-shrink: 0; }
+
+/* ── 机翻设置抽屉 ── */
+.st-settings-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.st-settings-title { font-size: 0.78rem; color: var(--text-muted); font-family: 'DM Mono',monospace; }
+.st-settings-toggle-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    background: var(--glass-hover); border: 1px solid var(--glass-border);
+    font-family: 'Noto Serif SC', serif; font-size: 0.80rem; font-weight: 600;
+    color: var(--text-muted); cursor: pointer;
+    transition: all 0.2s; box-shadow: var(--shadow-sm);
+}
+.st-settings-toggle-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-light); }
+.st-gear { display: inline-block; transition: transform 0.4s cubic-bezier(0.34,1.3,0.55,1); }
+.st-settings-toggle-btn.open .st-gear { transform: rotate(90deg); }
+
+.st-settings-drawer {
+    display: none;
+    background: var(--glass);
+    backdrop-filter: blur(12px) saturate(145%); -webkit-backdrop-filter: blur(12px) saturate(145%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg), inset 0 0.5px 0 rgba(255,255,255,0.9);
+    overflow: hidden; margin-bottom: 18px;
+    animation: stDrawerOpen 0.3s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes stDrawerOpen { from { opacity:0; transform:translateY(-10px) scaleY(0.94); transform-origin:top; } to { opacity:1; transform:translateY(0) scaleY(1); } }
+.st-settings-drawer.open { display: block; }
+.st-drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: rgba(255,255,255,0.35);
+    border-bottom: 1px solid var(--glass-border);
+}
+.st-drawer-title { font-size: 0.88rem; font-weight: 700; color: var(--text); }
+.st-drawer-body { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; align-items: stretch; }
+@media (max-width: 860px) { .st-drawer-body { grid-template-columns: 1fr; } }
+.st-drawer-col { padding: 14px 16px; border-right: 1px solid var(--glass-border); }
+.st-drawer-col:last-child { border-right: none; }
+.st-drawer-col-title { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; font-family: 'DM Mono',monospace; }
+
+/* ── 导航胶囊（来源切换）── */
+.st-nav-capsule {
+    display: flex; gap: 2px;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--glass);
+    backdrop-filter: blur(12px) saturate(145%);
+    -webkit-backdrop-filter: blur(12px) saturate(145%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow), inset 0 0.5px 0 rgba(255,255,255,0.9);
+    margin-bottom: 18px;
+    position: relative;
+}
+.st-nav-indicator {
+    position: absolute; top: 4px; height: calc(100% - 8px);
+    border-radius: 999px;
+    background: linear-gradient(150deg, rgba(255,255,255,0.92) 0%, rgba(240,237,255,0.74) 50%, rgba(255,255,255,0.84) 100%);
+    box-shadow: 0 2px 10px rgba(80,70,160,0.10), inset 0 0.5px 0 rgba(255,255,255,0.95);
+    pointer-events: none;
+    transition: left 0.32s cubic-bezier(0.34,1.2,0.55,1), width 0.32s cubic-bezier(0.34,1.2,0.55,1);
+    z-index: 0;
+}
+.st-nav-btn {
+    position: relative; z-index: 1;
+    background: transparent; border: none;
+    font-family: 'Noto Serif SC', serif; font-size: 0.84rem; font-weight: 600;
+    color: var(--text-muted); padding: 9px 24px;
+    border-radius: 999px; cursor: pointer;
+    transition: color 0.22s ease;
+    white-space: nowrap; display: flex; align-items: center; gap: 7px;
+}
+.st-nav-btn:hover { color: var(--text); }
+.st-nav-btn.active { color: var(--text); }
+.st-nav-btn-icon { font-size: 1rem; }
+
+/* ── 步骤卡片 ── */
+.st-step-card { display: none; }
+.st-step-card.active { display: block; }
+
+/* ── 步骤2 两栏 ── */
+.st-page-grid { display: grid; grid-template-columns: 1fr 280px; gap: 14px; align-items: stretch; }
+.st-main-col { min-width: 0; display: flex; flex-direction: column; }
+.st-side-col  { min-width: 0; display: flex; flex-direction: column; }
+.st-main-col > .st-card:first-child { flex: 1; }
+.st-side-col > .st-card:first-child { flex: 1; }
+.st-card-body { min-height: 340px; }
+.st-card.st-card-compact .st-card-body { min-height: unset; }
+
+/* ── 库内搜索空态 ── */
+.st-lib-search-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 20px;
+    color: var(--text-dim); font-family: 'DM Mono',monospace; font-size: 0.82rem;
+    text-align: center; gap: 6px;
+}
+.st-lib-search-empty-icon { font-size: 2rem; margin-bottom: 4px; }
+
+@keyframes successPop {
+    0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+    60%  { transform: scale(1.25) rotate(5deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.st-success-icon { animation: successPop 0.55s cubic-bezier(0.34,1.4,0.55,1) both; display: inline-block; font-size: 2.5rem; }
+
+@media (max-width: 960px) {
+    .st-page-grid { grid-template-columns: 1fr; }
+    .st-main-col > .st-card:first-child, .st-side-col > .st-card:first-child { flex: none; }
+    .st-card-body { min-height: unset; }
+}
+@media (max-width: 680px) { .st-page-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+    .st-stepper { padding: 4px; }
+    .st-step { padding: 7px 6px; gap: 5px; font-size: 0.70rem; }
+    .st-nav-btn { padding: 8px 16px; font-size: 0.78rem; }
+}
+
+/* Glass card */
+.st-card {
+    background: var(--glass);
+    backdrop-filter: blur(12px) saturate(145%); -webkit-backdrop-filter: blur(12px) saturate(145%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow), inset 0 0.5px 0 rgba(255,255,255,0.9);
+    overflow: hidden;
+    transition: box-shadow 0.22s ease;
+    margin-bottom: 14px;
+}
+.st-card:hover { box-shadow: var(--shadow-lg), inset 0 0.5px 0 rgba(255,255,255,0.95); }
+.st-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.38);
+    border-bottom: 1px solid var(--glass-border);
+}
+.st-card-title { font-family: 'Noto Serif SC', serif; font-weight: 600; font-size: 0.88rem; color: var(--text); }
+.st-card-body  { padding: 16px; }
+
+/* sub-tabs */
+.st-tabs { display: flex; gap: 0; background: rgba(255,255,255,0.35); border-bottom: 1px solid var(--glass-border); }
+.st-tab {
+    flex: 1; padding: 10px 0;
+    background: transparent; border: none;
+    font-family: 'Noto Serif SC', serif; font-size: 0.82rem; font-weight: 600;
+    color: var(--text-muted); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color 0.18s, border-color 0.18s;
+}
+.st-tab:hover { color: var(--text); }
+.st-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.st-section { display: none; }
+.st-section.active { display: block; }
+
+/* form elements */
+.st-form-row { margin-bottom: 12px; }
+.st-form-row:last-child { margin-bottom: 0; }
+.st-label { display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 500; }
+.st-input, .st-select, .st-textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid var(--glass-border);
+    color: var(--text); border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-family: 'Noto Serif SC', serif; font-size: 0.86rem;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    box-shadow: var(--shadow-sm), inset 0 0.5px 0 rgba(255,255,255,0.9);
+}
+.st-input:focus, .st-select:focus, .st-textarea:focus {
+    border-color: var(--accent-border);
+    background: rgba(255,255,255,0.90);
+    box-shadow: 0 0 0 3px var(--accent-dim), var(--shadow-sm);
+}
+.st-input::placeholder { color: var(--text-dim); }
+.st-select {
+    cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a8a4be' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 11px center;
+    padding-right: 30px;
+}
+.st-textarea { font-family: 'DM Mono', monospace; font-size: 0.76rem; resize: vertical; min-height: 200px; line-height: 1.7; }
+.st-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.st-input-group { display: flex; gap: 8px; }
+.st-input-group .st-input { flex: 1; }
+
+/* drop zone */
+.st-drop-zone {
+    border: 2px dashed var(--glass-border2);
+    border-radius: var(--radius-lg); padding: 32px 24px;
+    text-align: center; cursor: pointer;
+    background: rgba(255,255,255,0.38);
+    transition: all 0.22s; position: relative; overflow: hidden;
+}
+.st-drop-zone::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, var(--accent-glow) 0%, transparent 70%);
+    opacity: 0; transition: opacity 0.3s; border-radius: var(--radius-lg);
+}
+.st-drop-zone:hover, .st-drop-zone.dragover { border-color: var(--accent-border); background: rgba(237,237,255,0.45); }
+.st-drop-zone:hover::before, .st-drop-zone.dragover::before { opacity: 1; }
+.st-drop-icon { font-size: 1.8rem; margin-bottom: 7px; }
+.st-drop-title { font-size: 0.92rem; font-weight: 600; margin-bottom: 3px; color: var(--text); }
+.st-drop-sub   { font-size: 0.72rem; color: var(--text-muted); }
+.st-drop-formats { display: flex; gap: 5px; justify-content: center; margin-top: 9px; flex-wrap: wrap; }
+.st-format-tag {
+    background: rgba(91,91,214,0.08); border: 1px solid var(--accent-border);
+    padding: 2px 9px; border-radius: 20px;
+    font-size: 0.68rem; color: var(--accent); font-weight: 600; font-family: 'DM Mono', monospace;
+}
+
+/* file list */
+.st-file-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+.st-file-item { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.68); border: 1px solid var(--glass-border); box-shadow: var(--shadow-sm); }
+.st-file-icon { font-size: 1rem; }
+.st-file-info { flex: 1; min-width: 0; }
+.st-file-name { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-file-meta { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+.st-file-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 3px 5px; font-size: 0.82rem; border-radius: 4px; transition: all 0.15s; }
+.st-file-remove:hover { color: var(--error); background: rgba(192,57,43,0.08); }
+
+/* buttons */
+.st-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--radius-sm); font-family: 'Noto Serif SC', serif; font-size: 0.86rem; font-weight: 600; cursor: pointer; transition: all 0.18s; border: none; outline: none; }
+.st-btn-primary { background: var(--accent); color: white; box-shadow: 0 3px 12px var(--accent-glow), inset 0 0.5px 0 rgba(255,255,255,0.3); }
+.st-btn-primary:hover  { background: #5555d8; transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+.st-btn-primary:active { transform: scale(0.96); }
+.st-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.st-btn-secondary { background: var(--glass-hover); color: var(--text); border: 1px solid var(--glass-border); box-shadow: var(--shadow-sm); }
+.st-btn-secondary:hover { background: var(--glass-active); border-color: var(--accent-border); color: var(--accent); }
+.st-btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--glass-border); }
+.st-btn-ghost:hover { color: var(--text); background: var(--glass); box-shadow: var(--shadow-sm); }
+.st-btn-danger { background: rgba(192,57,43,0.08); color: var(--error); border: 1px solid rgba(192,57,43,0.22); }
+.st-btn-danger:hover { background: var(--error); color: white; }
+.st-btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+.st-btn-full { width: 100%; justify-content: center; }
+
+/* progress */
+.st-progress-bar-wrap { height: 5px; background: rgba(80,70,160,0.10); border-radius: 3px; overflow: hidden; margin: 10px 0 5px; }
+.st-progress-bar-fill { height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, var(--accent), #7878e0); transition: width 0.4s ease; }
+.st-progress-meta { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+.st-log { background: rgba(28,26,46,0.04); border-radius: var(--radius-sm); padding: 11px 13px; max-height: 160px; overflow-y: auto; font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--text-muted); line-height: 1.7; }
+.st-log-line { display: flex; gap: 7px; }
+.st-log-ts  { color: var(--text-dim); flex-shrink: 0; }
+.st-log-ok  { color: var(--success); }
+.st-log-err { color: var(--error); }
+
+/* info/warn box */
+.st-info-box { background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: var(--radius-sm); padding: 10px 13px; font-size: 0.76rem; color: var(--text-muted); line-height: 1.65; }
+.st-info-box strong { color: var(--accent); }
+.st-warn-box { background: var(--warning-light); border: 1px solid var(--warning-border); border-radius: var(--radius-sm); padding: 10px 13px; font-size: 0.76rem; color: var(--warning); line-height: 1.65; }
+
+/* test output */
+.st-test-output { margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.55); border: 1px solid var(--glass-border); font-family: 'DM Mono', monospace; font-size: 0.74rem; color: var(--text-muted); min-height: 42px; white-space: pre-wrap; word-break: break-all; line-height: 1.65; }
+.st-test-output.loading { color: var(--accent); border-color: var(--accent-border); background: var(--accent-light); }
+.st-test-output.success { color: var(--success); border-color: var(--success-border); background: var(--success-light); }
+.st-test-output.error   { color: var(--error); border-color: rgba(192,57,43,0.22); background: rgba(192,57,43,0.05); }
+
+/* path row */
+.st-path-row { display: flex; align-items: center; gap: 7px; padding: 8px 11px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.42); border: 1px solid var(--glass-border); margin-bottom: 10px; }
+.st-path-text { flex: 1; font-size: 0.76rem; font-family: 'DM Mono', monospace; color: var(--text-muted); word-break: break-all; min-width: 0; }
+.st-path-text.set { color: var(--text); }
+
+/* stream list */
+.st-stream-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: rgba(255,255,255,0.28); margin-bottom: 5px; }
+
+/* tag */
+.st-tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 20px; font-size: 0.68rem; font-weight: 600; font-family: 'DM Mono', monospace; }
+.st-tag-accent  { background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent-border); }
+.st-tag-success { background: var(--success-light); color: var(--success); border: 1px solid var(--success-border); }
+
+/* option group */
+.st-option-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.st-option-row { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); cursor: pointer; transition: all 0.18s; background: rgba(255,255,255,0.52); }
+.st-option-row:hover   { border-color: var(--accent-border); background: var(--glass-hover); }
+.st-option-row.selected { border-color: var(--accent-border); background: var(--accent-light); }
+.st-option-radio { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--glass-border2); flex-shrink: 0; transition: all 0.18s; display: flex; align-items: center; justify-content: center; }
+.st-option-row.selected .st-option-radio { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.st-option-row.selected .st-option-radio::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: white; display: block; }
+.st-option-content { flex: 1; }
+.st-option-title   { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+.st-option-example { font-size: 0.68rem; color: var(--text-muted); margin-top: 1px; font-family: 'DM Mono', monospace; }
+
+/* toggle */
+.st-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--glass-border); }
+.st-toggle-row:last-child { border-bottom: none; }
+.st-toggle-label { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+.st-toggle-desc  { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
+.st-toggle { width: 38px; height: 21px; border-radius: 11px; background: var(--glass-border2); cursor: pointer; position: relative; transition: background 0.22s; flex-shrink: 0; border: none; box-shadow: inset 0 1px 3px rgba(80,70,160,0.12); }
+.st-toggle::after { content: ''; position: absolute; width: 15px; height: 15px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: transform 0.22s cubic-bezier(0.34,1.3,0.55,1); box-shadow: 0 1px 4px rgba(80,70,160,0.22); }
+.st-toggle.on  { background: var(--accent); }
+.st-toggle.on::after { transform: translateX(17px); }
+
+/* provider rows */
+.st-pv-row { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.16s; border: 1px solid transparent; }
+.st-pv-row:hover { background: var(--glass-hover); border-color: var(--glass-border); }
+.st-pv-row.selected { background: var(--accent-light); border-color: var(--accent-border); }
+.st-pv-radio { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 2px solid var(--glass-border2); transition: all 0.16s; display: flex; align-items: center; justify-content: center; }
+.st-pv-row.selected .st-pv-radio { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.st-pv-row.selected .st-pv-radio::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: white; display: block; }
+.st-pv-name { font-size: 0.80rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+.st-pv-row.selected .st-pv-name { color: var(--accent); }
+.st-provider-panel { display: none; }
+.st-provider-panel.active { display: block; }
+
+/* result stats */
+.st-result-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 12px; }
+.st-stat-box { padding: 11px 14px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.42); border: 1px solid var(--glass-border); }
+.st-stat-label { font-size: 0.68rem; color: var(--text-dim); font-family: 'DM Mono', monospace; margin-bottom: 2px; letter-spacing: 0.04em; }
+.st-stat-value { font-size: 1.05rem; font-weight: 700; }
+.st-stat-accent  { color: var(--accent); }
+.st-stat-success { color: var(--success); }
+
+@keyframes stFadeUp { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+.st-animate-in { animation: stFadeUp 0.28s cubic-bezier(0.22,1,0.36,1) forwards; }
+@keyframes stPulse { 0%,100%{opacity:1} 50%{opacity:0.42} }
+.st-pulsing { animation: stPulse 1.4s ease-in-out infinite; }
+
+/* 媒体卡片网格 */
+#stLibGridOuter { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--scroll-gap); align-items: start; }
+@media (max-width: 600px) { #stLibGridOuter { grid-template-columns: repeat(3, 1fr); gap: 6px; } }
+
+.st-media-card {
+    position: relative; border-radius: var(--radius-sm); overflow: hidden;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-sm); cursor: pointer; opacity: 0;
+    transition: opacity 0.35s ease, transform 0.28s cubic-bezier(0.34,1.3,0.55,1), box-shadow 0.2s, border-color 0.18s;
+    aspect-ratio: 2/3; width: 100%;
+}
+.st-media-card.visible { opacity: 1; }
+.st-media-card:hover { transform: translateY(-3px) scale(1.04); box-shadow: var(--shadow); border-color: var(--glass-border2); }
+.st-media-card.selected { border-color: var(--accent-border); box-shadow: var(--shadow), 0 0 0 2px var(--accent-dim); transform: translateY(-2px); }
+.st-media-card:active { transform: scale(0.95); transition: transform 0.08s ease; }
+.st-media-card-poster { width: 100%; height: 100%; object-fit: cover; display: block; background: linear-gradient(135deg, #eae8f5 0%, #d8d5ee 100%); }
+.st-media-card-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 24px 6px 7px; }
+.st-media-card-overlay::before { content: ''; position: absolute; inset: 0; backdrop-filter: blur(5px) brightness(0.75); -webkit-backdrop-filter: blur(5px) brightness(0.75); -webkit-mask-image: linear-gradient(to top, black 0%, black 55%, transparent 100%); mask-image: linear-gradient(to top, black 0%, black 55%, transparent 100%); }
+.st-media-card-overlay::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.30) 0%, transparent 100%); }
+.st-media-card-title { position: relative; z-index: 1; font-family: 'Noto Serif SC', serif; font-size: 0.62rem; font-weight: 600; color: rgba(255,255,255,0.97); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 4px rgba(0,0,0,0.55); line-height: 1.35; }
+.st-media-card-meta { position: relative; z-index: 1; font-family: 'DM Mono', monospace; font-size: 0.48rem; color: rgba(255,255,255,0.72); margin-top: 2px; letter-spacing: 0.04em; }
+.st-media-card-type { position: absolute; top: 4px; right: 4px; font-family: 'DM Mono', monospace; font-size: 0.44rem; font-weight: 600; padding: 1px 5px; border-radius: 20px; line-height: 1.65; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 2; }
+.st-media-card-type-movie { background: rgba(74,74,203,0.72); color: white; }
+.st-media-card-type-tv    { background: rgba(26,158,110,0.72); color: white; }
+
+/* 内联展开块 */
+.st-lib-expand-row {
+    grid-column: 1 / -1;
+    background: linear-gradient(150deg, rgba(255,255,255,0.90) 0%, rgba(242,240,255,0.82) 100%);
+    backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid var(--glass-border2); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg), inset 0 0.5px 0 rgba(255,255,255,0.95);
+    overflow: hidden; animation: stExpandIn 0.32s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes stExpandIn { from { opacity:0; transform:scaleY(0.88); transform-origin: top; } to { opacity:1; transform:scaleY(1); transform-origin: top; } }
+.st-expand-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(255,255,255,0.45); border-bottom: 1px solid var(--glass-border); }
+.st-expand-title { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+.st-expand-sub   { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; font-family: 'DM Mono',monospace; }
+.st-expand-close { background: none; border: none; color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 8px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+.st-expand-close:hover { background: rgba(192,57,43,0.08); color: var(--error); }
+.st-expand-body { padding: 14px 16px; }
+
+/* 季 tabs */
+.st-season-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.st-season-tab { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--glass-border2); background: rgba(255,255,255,0.55); font-family: 'Noto Serif SC', serif; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; transition: all 0.18s; font-weight: 500; }
+.st-season-tab:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-light); }
+.st-season-tab.active { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; box-shadow: 0 2px 10px var(--accent-glow); }
+
+.st-ep-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--glass-border); }
+.st-ep-sel-count { font-size: 0.76rem; color: var(--text-muted); font-family: 'DM Mono',monospace; }
+
+.st-ep-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; max-height: 260px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; }
+.st-ep-grid::-webkit-scrollbar { width: 4px; }
+.st-ep-grid::-webkit-scrollbar-thumb { background: var(--glass-border2); border-radius: 3px; }
+.st-ep-item { display: flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: rgba(255,255,255,0.50); cursor: pointer; transition: all 0.15s; user-select: none; }
+.st-ep-item:hover { background: var(--glass-hover); border-color: var(--glass-border2); }
+.st-ep-item.checked { background: var(--accent-light); border-color: var(--accent-border); box-shadow: 0 0 0 2px var(--accent-dim); }
+.st-ep-item-label { font-family: 'DM Mono',monospace; font-size: 0.72rem; font-weight: 600; color: var(--text); flex-shrink: 0; }
+.st-ep-item-title { font-size: 0.68rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.st-ep-cb { width: 14px; height: 14px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+
+.st-expand-config { display: flex; gap: 10px; align-items: flex-end; padding-top: 12px; border-top: 1px solid var(--glass-border); flex-wrap: wrap; }
+.st-expand-config .st-form-row { flex: 1; min-width: 130px; margin-bottom: 0; }
+
+@media (max-width: 600px) { .st-ep-grid { grid-template-columns: 1fr 1fr; } }
+
+/* 库内搜索空态 */
+.st-lib-search-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; color: var(--text-dim); font-family: 'DM Mono',monospace; font-size: 0.82rem; text-align: center; gap: 6px; }
+.st-lib-search-empty-icon { font-size: 2rem; margin-bottom: 4px; }
+
+/* ── 自定义模型选择器 ── */
+.st-model-picker { position: relative; }
+.st-model-input {
+    width: 100%; background: rgba(255,255,255,0.72);
+    border: 1px solid var(--glass-border); color: var(--text);
+    border-radius: var(--radius-sm); padding: 9px 30px 9px 12px;
+    font-family: 'DM Mono', monospace; font-size: 0.82rem;
+    outline: none; transition: border-color 0.18s, box-shadow 0.18s;
+    box-shadow: var(--shadow-sm); cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.st-model-input:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim); }
+.st-model-input-arrow {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    pointer-events: none; color: var(--text-dim); font-size: 0.7rem;
+}
+.st-model-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border2); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 500; overflow: hidden;
+    animation: stFadeUp 0.18s ease both;
+}
+.st-model-dropdown.open { display: flex; flex-direction: column; }
+.st-model-search-wrap {
+    padding: 8px 8px 6px; border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+.st-model-search-input {
+    width: 100%; background: rgba(255,255,255,0.85);
+    border: 1px solid var(--glass-border2); border-radius: 7px;
+    padding: 6px 10px; font-family: 'DM Mono', monospace; font-size: 0.78rem;
+    outline: none; color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.st-model-search-input:focus { border-color: var(--accent-border); box-shadow: 0 0 0 2px var(--accent-dim); }
+.st-model-list {
+    overflow-y: auto; max-height: 220px; padding: 4px;
+}
+.st-model-list::-webkit-scrollbar { width: 4px; }
+.st-model-list::-webkit-scrollbar-thumb { background: var(--glass-border2); border-radius: 3px; }
+.st-model-item {
+    padding: 7px 10px; border-radius: 6px; cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--text-muted);
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.st-model-item:hover { background: var(--accent-light); color: var(--accent); }
+.st-model-item.selected { background: var(--accent); color: white; font-weight: 600; }
+.st-model-empty { padding: 14px 10px; text-align: center; color: var(--text-dim); font-size: 0.76rem; font-family: 'DM Mono',monospace; }
+</style>
+</head>
+<body>
+
+<div class="app-root">
+
+<!-- 导航胶囊 -->
+<nav class="nav-float" id="liquidNav">
+    <div class="lg-shine" id="lgShine"></div>
+    <div class="lg-indicator" id="lgIndicator"></div>
+    <button class="page-switch-btn active" id="navBtn-upload" data-page="upload">📄 上传字幕翻译</button>
+    <button class="page-switch-btn" id="navBtn-library" data-page="library">🎬 库内影视机翻</button>
+    <button class="page-switch-btn" id="navBtn-settings" data-page="settings">⚙️ 机翻设置</button>
+</nav>
+
+<!-- Toast 容器 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ══════════════════════════════════════════
+     上传字幕翻译 页
+══════════════════════════════════════════ -->
+<div id="uploadPage" class="page-content active">
+<div class="content-area">
+<div class="st-layout">
+  <div class="st-content-area">
+
+  <div class="st-stepper" id="stStepper" style="margin-bottom:18px">
+    <div class="st-step active" id="stStepEl-1"><div class="st-step-num" id="stStepNum-1">1</div><span class="st-step-label">选择文件</span></div>
+    <div class="st-step-connector"></div>
+    <div class="st-step" id="stStepEl-2"><div class="st-step-num" id="stStepNum-2">2</div><span class="st-step-label">确认配置</span></div>
+    <div class="st-step-connector"></div>
+    <div class="st-step" id="stStepEl-3"><div class="st-step-num" id="stStepNum-3">3</div><span class="st-step-label">翻译中</span></div>
+    <div class="st-step-connector"></div>
+    <div class="st-step" id="stStepEl-4"><div class="st-step-num" id="stStepNum-4">4</div><span class="st-step-label">完成</span></div>
+  </div>
+
+  <!-- 步骤1：选择文件 -->
+  <div class="st-step-card active" id="stWorkStep-1">
+    <div class="st-card st-animate-in">
+      <div class="st-card-header">
+        <div class="st-card-title">📄 选择字幕文件</div>
+        <span style="font-size:0.72rem;color:var(--text-dim);font-family:'DM Mono',monospace">SRT / ASS / VTT 批量机翻</span>
+      </div>
+      <div class="st-card-body">
+        <div class="st-drop-zone" id="stDropZone"
+             ondragover="stHandleDragOver(event)" ondragleave="stHandleDragLeave()"
+             ondrop="stHandleDrop(event)" onclick="document.getElementById('stFileInput').click()">
+          <div class="st-drop-icon">📄</div>
+          <div class="st-drop-title">拖拽或点击选择字幕文件</div>
+          <div class="st-drop-sub">支持批量添加，可混合格式</div>
+          <div class="st-drop-formats">
+            <span class="st-format-tag">SRT</span>
+            <span class="st-format-tag">ASS</span>
+            <span class="st-format-tag">VTT</span>
+          </div>
+        </div>
+        <input type="file" id="stFileInput" multiple accept=".srt,.ass,.vtt" style="display:none" onchange="stHandleFileSelect(event)">
+        <div class="st-file-list" id="stFileList"></div>
+        <div style="margin-top:14px;display:flex;justify-content:flex-end">
+          <button class="st-btn st-btn-primary" id="stUploadNextBtn" onclick="stGoToStep2Upload()" disabled>下一步 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤2：确认配置 -->
+  <div class="st-step-card" id="stWorkStep-2">
+    <div class="st-page-grid">
+      <div class="st-main-col">
+        <div class="st-card st-animate-in">
+          <div class="st-card-header">
+            <div class="st-card-title">📄 字幕文件</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="stFileCountLabel" style="font-size:0.72rem;color:var(--text-dim);font-family:'DM Mono',monospace">0 个文件</span>
+              <button class="st-btn st-btn-ghost st-btn-sm" onclick="stGoToStep(1)">← 返回</button>
+            </div>
+          </div>
+          <div class="st-card-body">
+            <div class="st-file-list" id="stFileList2"></div>
+          </div>
+        </div>
+      </div>
+      <div class="st-side-col">
+        <div class="st-card st-animate-in">
+          <div class="st-card-header"><div class="st-card-title">🌐 翻译配置</div></div>
+          <div class="st-card-body">
+            <div class="st-info-box" style="margin-bottom:12px">服务商：<strong id="stUpProviderLabel">—</strong></div>
+            <div class="st-info-box" style="margin-bottom:12px;font-size:0.8rem;color:var(--text-muted)">🌐 自动识别语言 → 中文　格式见右上角设置</div>
+            <select id="stSrcLang" style="display:none"><option value="auto" selected>自动检测</option></select>
+            <select id="stDstLang" style="display:none"><option value="zh" selected>中文</option></select>
+            <div style="display:flex;gap:9px;margin-top:4px">
+              <button class="st-btn st-btn-primary" id="stTranslateBtn" onclick="stStartTranslation()" style="flex:1">🚀 开始翻译</button>
+              <button class="st-btn st-btn-danger st-btn-sm" onclick="stGoToStep(1)">✕ 取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤3：翻译中 -->
+  <div class="st-step-card" id="stWorkStep-3">
+    <div class="st-card st-animate-in st-card-compact">
+      <div class="st-card-header">
+        <div><div class="st-card-title">⏳ 翻译进度</div><div id="stProgressLabel2" style="font-size:0.72rem;color:var(--text-dim);margin-top:2px;font-family:'DM Mono',monospace"></div></div>
+        <button class="st-btn st-btn-danger st-btn-sm" onclick="stCancelTranslation()">✕ 取消</button>
+      </div>
+      <div class="st-card-body">
+        <div class="st-pulsing" id="stProgressStatus2" style="font-size:0.86rem;font-weight:500;color:var(--text);margin-bottom:7px">准备中…</div>
+        <div class="st-progress-bar-wrap"><div class="st-progress-bar-fill" id="stProgressFill2"></div></div>
+        <div class="st-progress-meta"><span id="stProgressCount2">0 / 0 行</span><span id="stProgressPct2">0%</span></div>
+        <div class="st-log" id="stProgressLog2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤4：完成 -->
+  <div class="st-step-card" id="stWorkStep-4">
+    <div class="st-card st-animate-in st-card-compact">
+      <div class="st-card-header">
+        <div class="st-card-title"><span class="st-success-icon">✅</span> 机翻完成！</div>
+        <button class="st-btn st-btn-ghost st-btn-sm" onclick="stGoToStep(1);stResetAll()">+ 再翻一个</button>
+      </div>
+      <div class="st-card-body" style="min-height:unset">
+        <div class="st-result-stats">
+          <div class="st-stat-box"><div class="st-stat-label">SUBTITLE BLOCKS</div><div class="st-stat-value st-stat-accent" id="stResBlocks2">—</div></div>
+          <div class="st-stat-box"><div class="st-stat-label">TRANSLATED</div><div class="st-stat-value st-stat-success" id="stResTranslated2">—</div></div>
+        </div>
+        <div id="stResPathWrap2" style="display:none">
+          <div class="st-path-row"><span>💾</span><div class="st-path-text set" id="stResPath2">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     库内影视机翻 页
+══════════════════════════════════════════ -->
+<div id="libraryPage" class="page-content">
+<div class="content-area">
+<div class="st-layout">
+  <div class="st-content-area">
+
+  <div class="st-stepper" id="stStepperLib" style="margin-bottom:18px">
+    <div class="st-step active" id="stLibStepEl-1"><div class="st-step-num">1</div><span class="st-step-label">选择影视</span></div>
+    <div class="st-step-connector"></div>
+    <div class="st-step" id="stLibStepEl-2"><div class="st-step-num">2</div><span class="st-step-label">确认配置</span></div>
+    <div class="st-step-connector"></div>
+    <div class="st-step" id="stLibStepEl-3"><div class="st-step-num">3</div><span class="st-step-label">翻译中</span></div>
+    <div class="st-step-connector"></div>
+    <div class="st-step" id="stLibStepEl-4"><div class="st-step-num">4</div><span class="st-step-label">完成</span></div>
+  </div>
+
+  <!-- 步骤1：选择影视 -->
+  <div class="st-step-card active" id="stLibWorkStep-1">
+    <div class="st-card st-animate-in">
+      <div class="st-card-header">
+        <div class="st-card-title">🎬 从 Emby 库选择影视</div>
+        <button class="st-btn st-btn-ghost st-btn-sm" onclick="stLoadLibraryMedia(true)">↺ 刷新</button>
+      </div>
+      <div class="st-card-body">
+        <input type="text" class="st-input" id="stLibSearch" placeholder="🔍 输入片名开始搜索…" oninput="stFilterLibrary()" style="margin-bottom:10px">
+        <div id="stLibSearchEmpty" class="st-lib-search-empty">
+          <div class="st-lib-search-empty-icon">🔍</div>
+          <div>输入片名开始搜索</div>
+        </div>
+        <div id="stLibGridWrap" style="display:none">
+          <div id="stLibGridOuter" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:start"></div>
+        </div>
+        <div id="stLibGridEmpty" style="display:none;padding:24px 0;text-align:center;color:var(--text-dim);font-size:0.84rem;font-family:'DM Mono',monospace">换个关键词试试</div>
+        <div id="stLibShowAllRow" style="display:none;padding:10px 0 4px;text-align:center">
+          <button class="st-btn st-btn-ghost st-btn-sm" id="stLibShowAllBtn" onclick="stLibToggleShowAll()">查看全部</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤2：确认配置（电影单文件） -->
+  <div class="st-step-card" id="stLibWorkStep-2">
+    <div class="st-page-grid">
+      <div class="st-main-col">
+        <div class="st-card st-animate-in">
+          <div class="st-card-header">
+            <div class="st-card-title">🎬 已选影视</div>
+            <button class="st-btn st-btn-ghost st-btn-sm" onclick="stLibGoToStep(1)">← 重新选择</button>
+          </div>
+          <div class="st-card-body">
+            <div class="st-path-row"><span>🎞️</span><div class="st-path-text set" id="stLibSelectedPath">—</div><button class="st-btn st-btn-secondary st-btn-sm" onclick="stProbeStreams()">探测字幕流</button></div>
+            <div id="stLibStreamWrap" style="display:none;margin-bottom:0">
+              <div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:6px;font-weight:500">检测到的字幕流</div>
+              <div id="stLibStreamList"></div>
+            </div>
+            <div id="stLibNoStream" style="display:none">
+              <div class="st-warn-box">⚠️ <strong>未检测到内嵌字幕流</strong><br>大多数国内视频源没有内嵌字幕，如确认视频有字幕可直接开始机翻。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="st-side-col">
+        <div class="st-card st-animate-in">
+          <div class="st-card-header"><div class="st-card-title">🌐 翻译配置</div></div>
+          <div class="st-card-body">
+            <div class="st-info-box" style="margin-bottom:12px">服务商：<strong id="stLibMovieProviderLabel">—</strong></div>
+            <div class="st-form-row">
+              <label class="st-label">输出模式</label>
+              <select class="st-select" id="stLibModeMovie"><option value="bilingual">双语（译文+原文）</option><option value="trans">仅译文</option></select>
+            </div>
+            <div style="display:flex;gap:9px;margin-top:4px">
+              <button class="st-btn st-btn-primary" onclick="stLibStartMovie()" style="flex:1">▶ 开始机翻</button>
+              <button class="st-btn st-btn-danger st-btn-sm" onclick="stLibGoToStep(1)">✕ 取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤3：翻译中 -->
+  <div class="st-step-card" id="stLibWorkStep-3">
+    <div class="st-card st-animate-in st-card-compact">
+      <div class="st-card-header">
+        <div><div class="st-card-title">⏳ 翻译进度</div><div id="stLibProgressLabel" style="font-size:0.72rem;color:var(--text-dim);margin-top:2px;font-family:'DM Mono',monospace"></div></div>
+        <button class="st-btn st-btn-danger st-btn-sm" onclick="stLibCancel()">✕ 取消</button>
+      </div>
+      <div class="st-card-body">
+        <div class="st-pulsing" id="stLibProgressStatus" style="font-size:0.86rem;font-weight:500;color:var(--text);margin-bottom:7px">准备中…</div>
+        <div class="st-progress-bar-wrap"><div class="st-progress-bar-fill" id="stLibProgressFill"></div></div>
+        <div class="st-progress-meta"><span id="stLibProgressCount">0 / 0 行</span><span id="stLibProgressPct">0%</span></div>
+        <div class="st-log" id="stLibProgressLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤4：完成 -->
+  <div class="st-step-card" id="stLibWorkStep-4">
+    <div class="st-card st-animate-in st-card-compact">
+      <div class="st-card-header">
+        <div class="st-card-title"><span class="st-success-icon">✅</span> 机翻完成！</div>
+        <button class="st-btn st-btn-ghost st-btn-sm" onclick="stLibGoToStep(1)">+ 再翻一个</button>
+      </div>
+      <div class="st-card-body" style="min-height:unset">
+        <div class="st-result-stats">
+          <div class="st-stat-box"><div class="st-stat-label">SUBTITLE BLOCKS</div><div class="st-stat-value st-stat-accent" id="stLibResBlocks">—</div></div>
+          <div class="st-stat-box"><div class="st-stat-label">TRANSLATED</div><div class="st-stat-value st-stat-success" id="stLibResTranslated">—</div></div>
+        </div>
+        <div id="stLibResPathWrap" style="display:none">
+          <div class="st-path-row"><span>💾</span><div class="st-path-text set" id="stLibResPath">—</div></div>
+          <div style="font-size:0.76rem;color:var(--text-muted);margin-top:8px">字幕已写入视频同目录，Emby 已自动刷新媒体库。</div>
+          <div style="margin-top:12px">
+            <button class="st-btn st-btn-secondary" id="stLibResDownloadBtn" onclick="stDownloadResult()" style="gap:7px">⬇ 下载字幕文件</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     机翻设置 页
+══════════════════════════════════════════ -->
+<div id="settingsPage" class="page-content">
+<div class="content-area">
+<div class="st-card st-animate-in">
+  <div class="st-card-header">
+    <div class="st-card-title">🤖 机翻设置</div>
+    <a id="stProviderLink" href="https://siliconflow.cn" target="_blank" style="font-size:0.76rem;color:var(--accent);text-decoration:none">访问官网 ↗</a>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;align-items:stretch">
+    <!-- 列1：服务商选择 -->
+    <div class="st-drawer-col">
+      <div class="st-drawer-col-title">服务商</div>
+      <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px">
+        <div class="st-pv-row selected" id="stPvRow-siliconflow" onclick="stSwitchProvider('siliconflow',this)"><div class="st-pv-radio"></div><div class="st-pv-name">🤖 硅基流动</div></div>
+        <div class="st-pv-row" id="stPvRow-aliyun"      onclick="stSwitchProvider('aliyun',this)">     <div class="st-pv-radio"></div><div class="st-pv-name">🔶 阿里云百炼</div></div>
+        <div class="st-pv-row" id="stPvRow-moonshot"    onclick="stSwitchProvider('moonshot',this)">   <div class="st-pv-radio"></div><div class="st-pv-name">🌙 月之暗面</div></div>
+        <div class="st-pv-row" id="stPvRow-zhipu"       onclick="stSwitchProvider('zhipu',this)">      <div class="st-pv-radio"></div><div class="st-pv-name">🧠 智谱 BigModel</div></div>
+        <div class="st-pv-row" id="stPvRow-gemini"      onclick="stSwitchProvider('gemini',this)">     <div class="st-pv-radio"></div><div class="st-pv-name">✨ Google Gemini</div></div>
+        <div class="st-pv-row" id="stPvRow-openrouter"  onclick="stSwitchProvider('openrouter',this)"> <div class="st-pv-radio"></div><div class="st-pv-name">🌐 OpenRouter</div></div>
+      </div>
+      <!-- 每个服务商面板：模型选择器 + QPS + 行数 -->
+      <div class="st-provider-panel active" id="stCfg-siliconflow">
+        <div class="st-form-row">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <label class="st-label" style="margin:0">模型</label>
+            <button class="st-btn st-btn-ghost st-btn-sm" style="padding:2px 8px;font-size:0.7rem" onclick="stRefreshModelList('siliconflow')">↺ 刷新</button>
+          </div>
+          <div class="st-model-picker" id="stPicker-siliconflow">
+            <div class="st-model-input" id="stModelVal-siliconflow" onclick="stToggleModelDropdown('siliconflow')">加载中…</div>
+            <span class="st-model-input-arrow">▾</span>
+            <div class="st-model-dropdown" id="stModelDropdown-siliconflow">
+              <div class="st-model-search-wrap"><input class="st-model-search-input" id="stModelSearch-siliconflow" placeholder="搜索模型…" oninput="stFilterModelPicker('siliconflow')" autocomplete="off"></div>
+              <div class="st-model-list" id="stModelList-siliconflow"></div>
+            </div>
+          </div>
+          <div id="stModelUpdated-siliconflow" style="font-size:0.68rem;color:var(--text-dim);margin-top:3px;font-family:'DM Mono',monospace"></div>
+        </div>
+        <div class="st-row2"><div class="st-form-row" style="margin-bottom:0"><label class="st-label">QPS</label><input type="number" class="st-input" id="stQps-siliconflow" value="2" min="1"></div><div class="st-form-row" style="margin-bottom:0"><label class="st-label">行数</label><input type="number" class="st-input" id="stLines-siliconflow" value="50" min="1"></div></div>
+      </div>
+      <div class="st-provider-panel" id="stCfg-aliyun">
+        <div class="st-form-row">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <label class="st-label" style="margin:0">模型</label>
+            <button class="st-btn st-btn-ghost st-btn-sm" style="padding:2px 8px;font-size:0.7rem" onclick="stRefreshModelList('aliyun')">↺ 刷新</button>
+          </div>
+          <div class="st-model-picker" id="stPicker-aliyun">
+            <div class="st-model-input" id="stModelVal-aliyun" onclick="stToggleModelDropdown('aliyun')">加载中…</div>
+            <span class="st-model-input-arrow">▾</span>
+            <div class="st-model-dropdown" id="stModelDropdown-aliyun">
+              <div class="st-model-search-wrap"><input class="st-model-search-input" id="stModelSearch-aliyun" placeholder="搜索模型…" oninput="stFilterModelPicker('aliyun')" autocomplete="off"></div>
+              <div class="st-model-list" id="stModelList-aliyun"></div>
+            </div>
+          </div>
+          <div id="stModelUpdated-aliyun" style="font-size:0.68rem;color:var(--text-dim);margin-top:3px;font-family:'DM Mono',monospace"></div>
+        </div>
+        <div class="st-row2"><div class="st-form-row" style="margin-bottom:0"><label class="st-label">QPS</label><input type="number" class="st-input" id="stQps-aliyun" value="2" min="1"></div><div class="st-form-row" style="margin-bottom:0"><label class="st-label">行数</label><input type="number" class="st-input" id="stLines-aliyun" value="50" min="1"></div></div>
+      </div>
+      <div class="st-provider-panel" id="stCfg-moonshot">
+        <div class="st-form-row">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <label class="st-label" style="margin:0">模型</label>
+            <button class="st-btn st-btn-ghost st-btn-sm" style="padding:2px 8px;font-size:0.7rem" onclick="stRefreshModelList('moonshot')">↺ 刷新</button>
+          </div>
+          <div class="st-model-picker" id="stPicker-moonshot">
+            <div class="st-model-input" id="stModelVal-moonshot" onclick="stToggleModelDropdown('moonshot')">加载中…</div>
+            <span class="st-model-input-arrow">▾</span>
+            <div class="st-model-dropdown" id="stModelDropdown-moonshot">
+              <div class="st-model-search-wrap"><input class="st-model-search-input" id="stModelSearch-moonshot" placeholder="搜索模型…" oninput="stFilterModelPicker('moonshot')" autocomplete="off"></div>
+              <div class="st-model-list" id="stModelList-moonshot"></div>
+            </div>
+          </div>
+          <div id="stModelUpdated-moonshot" style="font-size:0.68rem;color:var(--text-dim);margin-top:3px;font-family:'DM Mono',monospace"></div>
+        </div>
+        <div class="st-row2"><div class="st-form-row" style="margin-bottom:0"><label class="st-label">QPS</label><input type="number" class="st-input" id="stQps-moonshot" value="2" min="1"></div><div class="st-form-row" style="margin-bottom:0"><label class="st-label">行数</label><input type="number" class="st-input" id="stLines-moonshot" value="50" min="1"></div></div>
+      </div>
+      <div class="st-provider-panel" id="stCfg-zhipu">
+        <div class="st-form-row">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <label class="st-label" style="margin:0">模型</label>
+            <button class="st-btn st-btn-ghost st-btn-sm" style="padding:2px 8px;font-size:0.7rem" onclick="stRefreshModelList('zhipu')">↺ 刷新</button>
+          </div>
+          <div class="st-model-picker" id="stPicker-zhipu">
+            <div class="st-model-input" id="stModelVal-zhipu" onclick="stToggleModelDropdown('zhipu')">加载中…</div>
+            <span class="st-model-input-arrow">▾</span>
+            <div class="st-model-dropdown" id="stModelDropdown-zhipu">
+              <div class="st-model-search-wrap"><input class="st-model-search-input" id="stModelSearch-zhipu" placeholder="搜索模型…" oninput="stFilterModelPicker('zhipu')" autocomplete="off"></div>
+              <div class="st-model-list" id="stModelList-zhipu"></div>
+            </div>
+          </div>
+          <div id="stModelUpdated-zhipu" style="font-size:0.68rem;color:var(--text-dim);margin-top:3px;font-family:'DM Mono',monospace"></div>
+        </div>
+        <div class="st-row2"><div class="st-form-row" style="margin-bottom:0"><label class="st-label">QPS</label><input type="number" class="st-input" id="stQps-zhipu" value="2" min="1"></div><div class="st-form-row" style="margin-bottom:0"><label class="st-label">行数</label><input type="number" class="st-input" id="stLines-zhipu" value="50" min="1"></div></div>
+      </div>
+      <div class="st-provider-panel" id="stCfg-gemini">
+        <div class="st-form-row">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <label class="st-label" style="margin:0">模型</label>
+            <button class="st-btn st-btn-ghost st-btn-sm" style="padding:2px 8px;font-size:0.7rem" onclick="stRefreshModelList('gemini')">↺ 刷新</button>
+          </div>
+          <div class="st-model-picker" id="stPicker-gemini">
+            <div class="st-model-input" id="stModelVal-gemini" onclick="stToggleModelDropdown('gemini')">加载中…</div>
+            <span class="st-model-input-arrow">▾</span>
+            <div class="st-model-dropdown" id="stModelDropdown-gemini">
+              <div class="st-model-search-wrap"><input class="st-model-search-input" id="stModelSearch-gemini" placeholder="搜索模型…" oninput="stFilterModelPicker('gemini')" autocomplete="off"></div>
+              <div class="st-model-list" id="stModelList-gemini"></div>
+            </div>
+          </div>
+          <div id="stModelUpdated-gemini" style="font-size:0.68rem;color:var(--text-dim);margin-top:3px;font-family:'DM Mono',monospace"></div>
+        </div>
+        <div class="st-row2"><div class="st-form-row" style="margin-bottom:0"><label class="st-label">QPS</label><input type="number" class="st-input" id="stQps-gemini" value="2" min="1"></div><div class="st-form-row" style="margin-bottom:0"><label class="st-label">行数</label><input type="number" class="st-input" id="stLines-gemini" value="50" min="1"></div></div>
+      </div>
+      <div class="st-provider-panel" id="stCfg-openrouter">
+        <div class="st-form-row">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <label class="st-label" style="margin:0">模型</label>
+            <button class="st-btn st-btn-ghost st-btn-sm" style="padding:2px 8px;font-size:0.7rem" onclick="stRefreshModelList('openrouter')">↺ 刷新</button>
+          </div>
+          <div class="st-model-picker" id="stPicker-openrouter">
+            <div class="st-model-input" id="stModelVal-openrouter" onclick="stToggleModelDropdown('openrouter')">加载中…</div>
+            <span class="st-model-input-arrow">▾</span>
+            <div class="st-model-dropdown" id="stModelDropdown-openrouter">
+              <div class="st-model-search-wrap"><input class="st-model-search-input" id="stModelSearch-openrouter" placeholder="搜索模型…" oninput="stFilterModelPicker('openrouter')" autocomplete="off"></div>
+              <div class="st-model-list" id="stModelList-openrouter"></div>
+            </div>
+          </div>
+          <div id="stModelUpdated-openrouter" style="font-size:0.68rem;color:var(--text-dim);margin-top:3px;font-family:'DM Mono',monospace"></div>
+        </div>
+        <div class="st-row2"><div class="st-form-row" style="margin-bottom:0"><label class="st-label">QPS</label><input type="number" class="st-input" id="stQps-openrouter" value="1" min="1"></div><div class="st-form-row" style="margin-bottom:0"><label class="st-label">行数</label><input type="number" class="st-input" id="stLines-openrouter" value="30" min="1"></div></div>
+      </div>
+      <div style="margin-top:10px;border-top:1px solid var(--glass-border);padding-top:10px;display:flex;flex-direction:column;gap:8px">
+        <div class="st-input-group"><input type="text" class="st-input" id="stTestMsg" value="请回复 OK"><button class="st-btn st-btn-secondary st-btn-sm" onclick="stTestCurrentProvider()">测试</button></div>
+        <div class="st-test-output" id="stTestOutput">等待测试…</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="st-btn st-btn-primary st-btn-sm" onclick="stSaveActiveProvider()">💾 保存服务商</button>
+          <span id="stActiveProviderSaved" style="font-size:0.76rem;color:var(--success);opacity:0;transition:opacity 0.4s">已保存 ✓</span>
+        </div>
+      </div>
+    </div>
+    <!-- 列2：输出格式 -->
+    <div class="st-drawer-col">
+      <div class="st-drawer-col-title">输出格式</div>
+      <div class="st-form-row">
+        <label class="st-label">内容格式</label>
+        <div class="st-option-group" id="stOutputGroup">
+          <div class="st-option-row" onclick="stSelectOption('stOutputGroup',this,'trans')"><div class="st-option-radio"></div><div class="st-option-content"><div class="st-option-title">仅译文</div></div></div>
+          <div class="st-option-row selected" onclick="stSelectOption('stOutputGroup',this,'both')"><div class="st-option-radio"></div><div class="st-option-content"><div class="st-option-title">双语对照</div></div></div>
+        </div>
+      </div>
+      <div class="st-form-row"><label class="st-label">文件名格式</label>
+        <div class="st-option-group" id="stFilenameGroup">
+          <div class="st-option-row selected" onclick="stSelectOption('stFilenameGroup',this,'prefix')"><div class="st-option-radio"></div><div class="st-option-content"><div class="st-option-title">前缀模式</div><div class="st-option-example">[服务商] 文件名.srt</div></div></div>
+          <div class="st-option-row" onclick="stSelectOption('stFilenameGroup',this,'suffix')"><div class="st-option-radio"></div><div class="st-option-content"><div class="st-option-title">后缀模式</div><div class="st-option-example">文件名 [服务商].srt</div></div></div>
+          <div class="st-option-row" onclick="stSelectOption('stFilenameGroup',this,'original')"><div class="st-option-radio"></div><div class="st-option-content"><div class="st-option-title">原文件名</div><div class="st-option-example">文件名.srt</div></div></div>
+        </div>
+      </div>
+      <div class="st-form-row"><label class="st-label">编码格式</label>
+        <div class="st-option-group" id="stEncodingGroup">
+          <div class="st-option-row selected" onclick="stSelectOption('stEncodingGroup',this,'utf8')"><div class="st-option-radio"></div><div class="st-option-content"><div class="st-option-title">UTF-8</div><div class="st-option-example">通用格式，推荐</div></div></div>
+          <div class="st-option-row" onclick="stSelectOption('stEncodingGroup',this,'utf8bom')"><div class="st-option-radio"></div><div class="st-option-content"><div class="st-option-title">UTF-8 with BOM</div><div class="st-option-example">Windows 播放器兼容</div></div></div>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="st-drawer-col-title">快速开关</div>
+        <div class="st-toggle-row">
+          <div><div class="st-toggle-label">去除 ASS 标签</div><div class="st-toggle-desc">移除 {\an8}{\i1} 等标签</div></div>
+          <button class="st-toggle on" id="stToggleStripTags" onclick="stSyncToggle('stripTags',this)"></button>
+        </div>
+        <div class="st-toggle-row">
+          <div><div class="st-toggle-label">标点替换为空格</div><div class="st-toggle-desc">中文逗号/句号 → 空格</div></div>
+          <button class="st-toggle" id="stTogglePunct" onclick="stSyncToggle('punct',this)"></button>
+        </div>
+      </div>
+    </div>
+    <!-- 列3：System Prompt -->
+    <div class="st-drawer-col">
+      <div class="st-drawer-col-title">System Prompt</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label class="st-label" style="margin:0">适用于所有服务商</label>
+        <button class="st-btn st-btn-ghost st-btn-sm" onclick="stResetPrompt()">↺ 恢复默认</button>
+      </div>
+      <textarea class="st-textarea" id="stSystemPrompt" style="min-height:400px"></textarea>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+</div><!-- /.app-root -->
+
+<script>
+/* ══════════════════════════════════════════════
+   全局配置
+══════════════════════════════════════════════ */
+const API_BASE = '';
+
+/* ══════════════════════════════════════════════
+   Toast
+══════════════════════════════════════════════ */
+function showToast(msg, type='info', duration=3000) {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => {
+        t.style.animation = 'toastOut 0.28s ease forwards';
+        setTimeout(() => t.remove(), 280);
+    }, duration);
+}
+
+/* ══════════════════════════════════════════════
+   导航胶囊（两个按钮）
+══════════════════════════════════════════════ */
+(function() {
+    const nav       = document.getElementById('liquidNav');
+    const indicator = document.getElementById('lgIndicator');
+    const shine     = document.getElementById('lgShine');
+    const pageBtns  = Array.from(nav.querySelectorAll('.page-switch-btn'));
+    let activeBtn   = pageBtns[0];
+
+    const SPRING = 'cubic-bezier(0.34,1.28,0.55,1)';
+
+    function getBtnRect(btn) {
+        const navR = nav.getBoundingClientRect();
+        const btnR = btn.getBoundingClientRect();
+        return { left: btnR.left - navR.left - 5, width: btnR.width };
+    }
+
+    function moveIndicator(btn, animate=true, dir=0) {
+        const { left, width } = getBtnRect(btn);
+        const duration = animate ? '0.55s' : '0s';
+        if (animate && dir !== 0) {
+            const stretchW = width + 16;
+            const stretchL = dir < 0 ? left - 8 : left;
+            indicator.style.transition = `left 0.20s cubic-bezier(0.34,1.18,0.55,1), width 0.20s cubic-bezier(0.34,1.18,0.55,1)`;
+            indicator.style.left  = stretchL + 'px';
+            indicator.style.width = stretchW + 'px';
+            setTimeout(() => {
+                indicator.style.transition = `left ${duration} ${SPRING}, width ${duration} ${SPRING}`;
+                indicator.style.left  = left + 'px';
+                indicator.style.width = width + 'px';
+            }, 180);
+        } else {
+            indicator.style.transition = `left ${duration} ${SPRING}, width ${duration} ${SPRING}`;
+            indicator.style.left  = left + 'px';
+            indicator.style.width = width + 'px';
+        }
+    }
+
+    function triggerShine() {
+        shine.classList.remove('run');
+        requestAnimationFrame(() => requestAnimationFrame(() => shine.classList.add('run')));
+    }
+
+    function switchPage(page) {
+        document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+        const target = document.getElementById(page + 'Page');
+        if (target) target.classList.add('active');
+        if (page === 'library') {
+            try { stLoadLibraryRecent(); } catch(e) {}
+        }
+    }
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        moveIndicator(activeBtn, false);
+        pageBtns[0].classList.add('active');
+    }));
+
+    pageBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const prev = activeBtn;
+            const prevR = getBtnRect(prev);
+            const newR  = getBtnRect(btn);
+            const dir   = newR.left > prevR.left ? 1 : (newR.left < prevR.left ? -1 : 0);
+            pageBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeBtn = btn;
+            moveIndicator(btn, true, dir);
+            triggerShine();
+            switchPage(btn.dataset.page);
+        });
+    });
+
+    window.addEventListener('resize', () => requestAnimationFrame(() => moveIndicator(activeBtn, false)));
+})();
+
+/* ══════════════════════════════════════════════
+   步骤系统
+══════════════════════════════════════════════ */
+window.currentStep = 1;
+window.stGoToStep = function(n) {
+    window.currentStep = n;
+    for (let i = 1; i <= 4; i++) {
+        const card = document.getElementById('stWorkStep-' + i);
+        const stepEl = document.getElementById('stStepEl-' + i);
+        if (!card || !stepEl) continue;
+        card.classList.toggle('active', i === n);
+        stepEl.classList.remove('active', 'done');
+        if (i < n) stepEl.classList.add('done');
+        else if (i === n) stepEl.classList.add('active');
+    }
+};
+
+window.stLibGoToStep = function(n) {
+    for (let i = 1; i <= 4; i++) {
+        const card = document.getElementById('stLibWorkStep-' + i);
+        const stepEl = document.getElementById('stLibStepEl-' + i);
+        if (!card) continue;
+        card.classList.toggle('active', i === n);
+        if (!stepEl) continue;
+        stepEl.classList.remove('active', 'done');
+        if (i < n) stepEl.classList.add('done');
+        else if (i === n) stepEl.classList.add('active');
+    }
+};
+
+/* ══════════════════════════════════════════════
+   机翻模块（ST = SubTitle）
+══════════════════════════════════════════════ */
+(function() {
+
+const ST = {
+    files: [], translating: false, cancelFlag: false,
+    filenameMode: 'prefix', encodingMode: 'utf8', outputMode: 'both',
+    currentProvider: 'siliconflow',
+};
+window.ST_FILES = ST.files;
+const stToggle = { punct: false, stripTags: true };
+
+const ST_DEFAULT_PROMPT = `【角色设定】
+你是一位专业的影视字幕翻译专家，精通中文（简体）与多语言互译。
+
+【输入格式】
+用户将提供 SRT 格式的字幕文本（包含序号、时间轴、字幕文本）。
+
+【任务指令】
+请严格遵循以下规则将字幕翻译成目标语言：
+1. **格式保留**：必须完整保留原有的序号（数字）和时间轴，一行都不要改动。
+2. **逐行对应**：保持"序号-时间轴-译文"的三行结构，禁止合并或删除字幕块。
+3. **单行译文**：每个字幕块的译文必须在同一行内完成，严禁插入换行符。
+4. **标签保留**：HTML 标签（如 <i></i>）必须完整保留在译文对应位置。
+5. **断句与长度**：保持自然口语化断句，强制切断位置与原文一致。
+6. **术语处理**：人名、地名直接使用中文译名，不在括号内标注原文。
+7. **纯净输出**：仅输出翻译后的 SRT 字幕文本，不添加任何解释或前缀。
+
+【开始翻译】
+请等待用户粘贴字幕内容。`;
+
+document.getElementById('stSystemPrompt').value = ST_DEFAULT_PROMPT;
+
+const stProviderMeta = {
+    siliconflow: { name:'硅基流动',   url:'https://siliconflow.cn' },
+    aliyun:      { name:'阿里云百炼', url:'https://bailian.console.aliyun.com' },
+    moonshot:    { name:'月之暗面',   url:'https://platform.moonshot.cn' },
+    zhipu:       { name:'智谱',       url:'https://open.bigmodel.cn' },
+    gemini:      { name:'Gemini',     url:'https://aistudio.google.com' },
+    openrouter:  { name:'OpenRouter', url:'https://openrouter.ai' },
+};
+
+// ── 自定义模型选择器 ──
+// _stModelAll[provider] = 完整模型列表（原始数据，不随搜索变化）
+// _stModelSelected[provider] = 当前选中的模型 ID
+const _stModelAll      = {};
+const _stModelSelected = {};
+
+// 渲染列表项（含过滤）
+function _stRenderPickerList(provider, q) {
+    const listEl = document.getElementById('stModelList-' + provider);
+    if (!listEl) return;
+    const all      = _stModelAll[provider] || [];
+    const keyword  = (q || '').toLowerCase().trim();
+    const filtered = keyword ? all.filter(m => m.toLowerCase().includes(keyword)) : all;
+    const selected = _stModelSelected[provider] || '';
+    if (!filtered.length) {
+        listEl.innerHTML = `<div class="st-model-empty">${keyword ? '没有匹配的模型' : '暂无模型，请点击↺刷新'}</div>`;
+        return;
+    }
+    listEl.innerHTML = filtered.map(m =>
+        `<div class="st-model-item${m === selected ? ' selected' : ''}" onclick="stPickModel('${provider}','${m.replace(/'/g,"\\'")}',this)">${m}</div>`
+    ).join('');
+    // 滚动到已选中项
+    const selEl = listEl.querySelector('.st-model-item.selected');
+    if (selEl) selEl.scrollIntoView({ block: 'nearest' });
+}
+
+// 点击选中某个模型
+window.stPickModel = function(provider, modelId, itemEl) {
+    _stModelSelected[provider] = modelId;
+    // 更新显示值
+    const valEl = document.getElementById('stModelVal-' + provider);
+    if (valEl) valEl.textContent = modelId;
+    // 更新列表高亮
+    const listEl = document.getElementById('stModelList-' + provider);
+    if (listEl) {
+        listEl.querySelectorAll('.st-model-item').forEach(el => el.classList.remove('selected'));
+        if (itemEl) itemEl.classList.add('selected');
+    }
+    // 关闭下拉
+    stCloseModelDropdown(provider);
+};
+
+// 打开/关闭下拉
+window.stToggleModelDropdown = function(provider) {
+    const dd = document.getElementById('stModelDropdown-' + provider);
+    if (!dd) return;
+    const isOpen = dd.classList.contains('open');
+    // 先关所有
+    document.querySelectorAll('.st-model-dropdown.open').forEach(el => el.classList.remove('open'));
+    if (!isOpen) {
+        dd.classList.add('open');
+        // 清空搜索框，聚焦
+        const searchEl = document.getElementById('stModelSearch-' + provider);
+        if (searchEl) { searchEl.value = ''; searchEl.focus(); }
+        // 渲染完整列表
+        _stRenderPickerList(provider, '');
+    }
+};
+
+function stCloseModelDropdown(provider) {
+    const dd = document.getElementById('stModelDropdown-' + provider);
+    if (dd) dd.classList.remove('open');
+}
+
+// 搜索输入实时过滤
+window.stFilterModelPicker = function(provider) {
+    const q = document.getElementById('stModelSearch-' + provider)?.value || '';
+    _stRenderPickerList(provider, q);
+};
+
+// 点击外部关闭
+document.addEventListener('click', e => {
+    if (!e.target.closest('.st-model-picker')) {
+        document.querySelectorAll('.st-model-dropdown.open').forEach(el => el.classList.remove('open'));
+    }
+});
+
+// 加载某服务商模型列表并初始化 picker
+async function stLoadModelList(provider) {
+    const valEl = document.getElementById('stModelVal-' + provider);
+    const updEl = document.getElementById('stModelUpdated-' + provider);
+    if (valEl) valEl.textContent = '加载中…';
+    try {
+        const r    = await fetch(`${API_BASE}/api/models/${provider}`);
+        const data = await r.json();
+        const models = data.models || [];
+        if (updEl && data.updated_at) updEl.textContent = `更新于 ${data.updated_at}`;
+        if (!models.length) {
+            if (valEl) valEl.textContent = '暂无缓存，请↺刷新';
+            return;
+        }
+        _stModelAll[provider] = models;
+        // 恢复上次选中（localStorage）或默认第一个
+        let saved = null;
+        try { saved = localStorage.getItem(`st_model_${provider}`); } catch(e) {}
+        const init = (saved && models.includes(saved)) ? saved : models[0];
+        _stModelSelected[provider] = init;
+        if (valEl) valEl.textContent = init;
+    } catch(e) {
+        if (valEl) valEl.textContent = '加载失败';
+        console.error('[models]', provider, e);
+    }
+}
+
+window.stRefreshModelList = async function(provider) {
+    const valEl = document.getElementById('stModelVal-' + provider);
+    if (valEl) valEl.textContent = '刷新中…';
+    try {
+        await fetch(`${API_BASE}/api/models/refresh`, { method: 'POST' });
+        showToast(`已触发刷新，约 10 秒后更新 ${stProviderMeta[provider]?.name} 模型列表`, 'info', 4000);
+        setTimeout(() => stLoadModelList(provider), 10000);
+    } catch(e) {
+        showToast('刷新失败: ' + e.message, 'error');
+        stLoadModelList(provider);
+    }
+};
+
+// 页面加载后并发拉取所有服务商
+setTimeout(() => {
+    Object.keys(stProviderMeta).forEach(p => stLoadModelList(p));
+}, 150);
+
+window.stSwitchProvider = function(id, rowEl) {
+    ST.currentProvider = id;
+    document.querySelectorAll('.st-pv-row').forEach(r => r.classList.remove('selected'));
+    const targetRow = rowEl || document.getElementById('stPvRow-' + id);
+    if (targetRow) targetRow.classList.add('selected');
+    document.querySelectorAll('.st-provider-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById('stCfg-' + id);
+    if (panel) panel.classList.add('active');
+    const linkEl = document.getElementById('stProviderLink');
+    if (linkEl) linkEl.href = stProviderMeta[id]?.url || '#';
+    stRefreshProviderLabel();
+};
+
+window.stSaveActiveProvider = function() {
+    try {
+        localStorage.setItem('st_active_provider', ST.currentProvider);
+        // 同时保存当前服务商选中的模型
+        const model = _stModelSelected[ST.currentProvider];
+        if (model) localStorage.setItem(`st_model_${ST.currentProvider}`, model);
+    } catch(e) {}
+    stRefreshProviderLabel();
+    const savedEl = document.getElementById('stActiveProviderSaved');
+    savedEl.style.opacity = '1';
+    setTimeout(() => { savedEl.style.opacity = '0'; }, 2000);
+    showToast('已保存，当前服务商：' + stProviderMeta[ST.currentProvider].name, 'success');
+};
+
+function stRefreshProviderLabel() {
+    const name = stProviderMeta[ST.currentProvider]?.name || '—';
+    ['stUpProviderLabel','stLibMovieProviderLabel','stLibTVProviderLabel'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = name;
+    });
+}
+window.stRefreshProviderLabel = stRefreshProviderLabel;
+
+// 初始化：从 localStorage 恢复
+(function() {
+    let saved = null;
+    try { saved = localStorage.getItem('st_active_provider'); } catch(e) {}
+    if (saved && stProviderMeta[saved]) stSwitchProvider(saved, null);
+    else stSwitchProvider('siliconflow', null);
+    stRefreshProviderLabel();
+})();
+
+function stGetCfg(id) {
+    const model = _stModelSelected[id] || '';
+    const qps   = +(document.getElementById('stQps-' + id)?.value   || 2);
+    const lines = +(document.getElementById('stLines-' + id)?.value || 50);
+    const type  = (id === 'gemini') ? 'gemini' : 'openai';
+    if (!model) throw new Error(`请先在设置页选择 ${id} 的模型`);
+    return { provider: id, type, model, qps, batchSize: lines };
+}
+
+async function stCallAI(cfg, sys, user) {
+    const model = cfg.model || '';
+    const isMT = model.includes('qwen-mt')||model.includes('mt-flash')||model.includes('mt-plus')||model.includes('mt-turbo')||model.includes('mt-lite');
+    const messages = (cfg.type === 'gemini' || !isMT)
+        ? [{ role:'system', content:sys }, { role:'user', content:user }]
+        : [{ role:'user', content:user }];
+    const r = await fetch(`${API_BASE}/api/ai_proxy`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: cfg.provider, model, messages }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    return d.text || '';
+}
+
+window.stTestCurrentProvider = async function() {
+    const out = document.getElementById('stTestOutput');
+    const msg = document.getElementById('stTestMsg').value || '请回复 OK';
+    out.className = 'st-test-output loading'; out.textContent = '⏳ 发送中…';
+    try {
+        const cfg = stGetCfg(ST.currentProvider);
+        const res = await stCallAI(cfg, '你是测试助手，直接回答用户消息。', msg);
+        out.className = 'st-test-output success'; out.textContent = '✅ 成功！\n\n' + res;
+    } catch(e) {
+        out.className = 'st-test-output error'; out.textContent = '❌ 失败：' + e.message;
+    }
+};
+
+window.stSelectOption = function(groupId, row, value) {
+    document.querySelectorAll('#' + groupId + ' .st-option-row').forEach(r => r.classList.remove('selected'));
+    row.classList.add('selected');
+    if (groupId === 'stFilenameGroup') ST.filenameMode = value;
+    if (groupId === 'stEncodingGroup') ST.encodingMode = value;
+    if (groupId === 'stOutputGroup')   ST.outputMode   = value;
+};
+window.stSyncToggle = function(key, btn) { stToggle[key] = !stToggle[key]; btn.classList.toggle('on', stToggle[key]); };
+window.stResetPrompt = function() { document.getElementById('stSystemPrompt').value = ST_DEFAULT_PROMPT; showToast('已恢复默认提示词', 'info'); };
+
+/* ── 拖拽上传 ── */
+window.stHandleDragOver  = function(e) { e.preventDefault(); document.getElementById('stDropZone').classList.add('dragover'); };
+window.stHandleDragLeave = function()  { document.getElementById('stDropZone').classList.remove('dragover'); };
+window.stHandleDrop      = function(e) { e.preventDefault(); document.getElementById('stDropZone').classList.remove('dragover'); stAddFiles(Array.from(e.dataTransfer.files)); };
+window.stHandleFileSelect = function(e) { stAddFiles(Array.from(e.target.files)); e.target.value = ''; };
+
+function stAddFiles(files) {
+    files.filter(f => /\.(srt|ass|vtt)$/i.test(f.name)).forEach(f => {
+        if (!ST.files.find(x => x.name === f.name)) ST.files.push(f);
+    });
+    stRenderFileList();
+}
+window.stRemoveFile = function(i) { ST.files.splice(i, 1); stRenderFileList(); };
+
+function stRenderFileList() {
+    const list = document.getElementById('stFileList');
+    list.innerHTML = ST.files.map((f, i) => `
+        <div class="st-file-item st-animate-in">
+            <div class="st-file-icon">${f.name.endsWith('.ass') ? '🎨' : '📄'}</div>
+            <div class="st-file-info">
+                <div class="st-file-name">${stEsc(f.name)}</div>
+                <div class="st-file-meta">${stFmtBytes(f.size)} · ${f.name.split('.').pop().toUpperCase()}</div>
+            </div>
+            <span class="st-tag st-tag-accent">${f.name.split('.').pop()}</span>
+            <button class="st-file-remove" onclick="stRemoveFile(${i})">✕</button>
+        </div>`).join('');
+    document.getElementById('stFileCountLabel').textContent = ST.files.length ? `已选 ${ST.files.length} 个文件` : '0 个文件';
+    const nextBtn = document.getElementById('stUploadNextBtn');
+    if (nextBtn) nextBtn.disabled = ST.files.length === 0;
+}
+function stFmtBytes(b) { if(b<1024)return b+'B'; if(b<1048576)return(b/1024).toFixed(1)+'KB'; return(b/1048576).toFixed(1)+'MB'; }
+
+/* 步骤1 → 步骤2 */
+window.stGoToStep2Upload = function() {
+    if (!ST.files.length) return;
+    // 同步文件列表到步骤2
+    const list2 = document.getElementById('stFileList2');
+    list2.innerHTML = ST.files.map(f => `
+        <div class="st-file-item">
+            <div class="st-file-icon">${f.name.endsWith('.ass') ? '🎨' : '📄'}</div>
+            <div class="st-file-info"><div class="st-file-name">${stEsc(f.name)}</div><div class="st-file-meta">${stFmtBytes(f.size)}</div></div>
+        </div>`).join('');
+    stRefreshProviderLabel();
+    stGoToStep(2);
+};
+
+window.stResetAll = function() {
+    ST.files.length = 0;
+    ST.translating = false; ST.cancelFlag = false;
+    stRenderFileList();
+};
+
+/* SRT 解析 */
+function stStripAssTags(t) { return t.replace(/\{[^}]*\}/g, '').trim(); }
+function stParseSRT(text) {
+    text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+    return text.trim().split(/\n\s*\n/).map(b => {
+        const lines = b.trim().split('\n');
+        if (lines.length < 3) return null;
+        const idx = lines[0].trim(), time = lines[1].trim(), rawContent = lines.slice(2).join('\n');
+        if (!/^\d+$/.test(idx) || !/-->/.test(time)) return null;
+        return { idx, time, rawContent };
+    }).filter(Boolean);
+}
+
+function stBuildUserMsg(blocks) {
+    const chunk = blocks.map(b => {
+        const txt = stToggle.stripTags ? stStripAssTags(b.rawContent) : b.rawContent;
+        return `${b.idx}\n${b.time}\n${txt}`;
+    }).join('\n\n');
+    return `识别字幕语言并翻译为中文，保持SRT格式（序号、时间码不变），直接输出翻译结果，不要解释：\n\n${chunk}`;
+}
+function stParseAIResp(response, blocks) {
+    const results = {};
+    const re = /(\d+)\n([\d:,]+ --> [\d:,]+)\n([\s\S]*?)(?=\n\d+\n[\d:,]+ -->|\s*$)/g;
+    let m; while((m = re.exec(response + '\n')) !== null) results[m[1]] = m[3].trim();
+    return blocks.map(b => results[b.idx] || '');
+}
+async function stTranslateBatches(blocks, cfg, systemPrompt, onProgress) {
+    const batchSize = Math.max(1, cfg.batchSize), qps = Math.max(1, cfg.qps);
+    const results = new Array(blocks.length).fill('');
+    const batches = [];
+    for (let i = 0; i < blocks.length; i += batchSize) batches.push({ start:i, items:blocks.slice(i, i+batchSize) });
+    let done = 0;
+    const promises = batches.map((batch, bi) =>
+        new Promise(res => setTimeout(res, bi * (1000/qps))).then(async () => {
+            if (ST.cancelFlag) return;
+            try {
+                const resp = await stCallAI(cfg, systemPrompt, stBuildUserMsg(batch.items));
+                const trans = stParseAIResp(resp, batch.items);
+                trans.forEach((t, i) => { results[batch.start+i] = t; });
+                done += batch.items.length;
+                onProgress(done, blocks.length, `✓ 行 ${batch.start+1}–${batch.start+batch.items.length}`);
+            } catch(e) {
+                done += batch.items.length;
+                onProgress(done, blocks.length, `✗ 行 ${batch.start+1}–${batch.start+batch.items.length}: ${e.message}`);
+            }
+        })
+    );
+    await Promise.all(promises);
+    return results;
+}
+
+window.stStartTranslation = async function() {
+    if (!ST.files.length) { showToast('请先添加字幕文件', 'error'); return; }
+    const providerId = ST.currentProvider;
+    const cfg = stGetCfg(providerId);
+    ST.translating = true; ST.cancelFlag = false;
+    stGoToStep(3);
+    document.getElementById('stProgressLog2').textContent = '';
+    const systemPrompt = document.getElementById('stSystemPrompt').value;
+    const pName = stProviderMeta[providerId].name;
+    let totalBlocks = 0, totalTranslated = 0;
+
+    for (const file of ST.files) {
+        if (ST.cancelFlag) break;
+        const text = await stReadFile(file);
+        const blocks = stParseSRT(text);
+        if (!blocks.length) { stAppendLog2(`⚠️ ${file.name}: 无法解析`); continue; }
+        totalBlocks += blocks.length;
+        stSetProg2(0, blocks.length, `翻译中：${file.name}`);
+        const translations = await stTranslateBatches(blocks, cfg, systemPrompt, (done, total, msg) => {
+            stSetProg2(done, total, `翻译中：${file.name}`); stAppendLog2(msg);
+        });
+        if (ST.cancelFlag) break;
+        const outputBlocks = blocks.map((b, i) => {
+            const orig = stToggle.stripTags ? stStripAssTags(b.rawContent) : b.rawContent;
+            let trans = translations[i] || '';
+            if (stToggle.punct) trans = trans.replace(/，/g,' ').replace(/。/g,' ');
+            const content = ST.outputMode === 'trans' ? trans : (trans + '\n' + orig);
+            return `${b.idx}\n${b.time}\n${content}`;
+        });
+        const base = file.name.replace(/\.[^.]+$/, '');
+        const tag = `[${pName}]`;
+        const outName = ST.filenameMode === 'prefix' ? `${tag} ${base}.srt` : ST.filenameMode === 'suffix' ? `${base} ${tag}.srt` : `${base}.srt`;
+        const bom = ST.encodingMode === 'utf8bom' ? '\uFEFF' : '';
+        stDownloadText(bom + outputBlocks.join('\n\n') + '\n', outName);
+        totalTranslated += translations.filter(t => t).length;
+    }
+    ST.translating = false;
+    if (!ST.cancelFlag) {
+        document.getElementById('stResBlocks2').textContent = totalBlocks;
+        document.getElementById('stResTranslated2').textContent = totalTranslated;
+        document.getElementById('stResPathWrap2').style.display = 'none';
+        stGoToStep(4);
+        showToast('翻译完成，文件已下载', 'success');
+    }
+};
+
+window.stCancelTranslation = function() {
+    ST.cancelFlag = true; ST.translating = false;
+    stGoToStep(2);
+    showToast('已取消', 'info');
+};
+
+function stSetProg2(done, total, status) {
+    const pct = total ? Math.round(done/total*100) : 0;
+    const s2 = document.getElementById('stProgressStatus2');
+    if (s2) { s2.textContent = status; s2.classList.add('st-pulsing'); }
+    const f2 = document.getElementById('stProgressFill2');
+    if (f2) f2.style.width = pct + '%';
+    const c2 = document.getElementById('stProgressCount2');
+    if (c2) c2.textContent = `${done} / ${total} 行`;
+    const p2 = document.getElementById('stProgressPct2');
+    if (p2) p2.textContent = pct + '%';
+}
+function stAppendLog2(msg) {
+    const el = document.getElementById('stProgressLog2');
+    if (el) { el.textContent += msg + '\n'; el.scrollTop = el.scrollHeight; }
+}
+function stReadFile(f) {
+    return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = () => rej(new Error('读取失败'));
+        r.readAsText(f, 'utf-8');
+    });
+}
+function stDownloadText(text, filename) {
+    const a = Object.assign(document.createElement('a'), {
+        href: URL.createObjectURL(new Blob([text], {type:'text/plain'})),
+        download: filename
+    });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/* ════════════════════════════════════════
+   库内影视机翻
+════════════════════════════════════════ */
+const LIB = {
+    selectedPath: null, taskId: null, polling: null,
+    allMedia: [], cancelFlag: false,
+    episodes: [], currentSeason: null, selectedPaths: [],
+    isTV: false, libLoaded: false,
+    expandCardEl: null, expandRowEl: null,
+};
+
+function stGetTwoRowCount() {
+    const grid = document.getElementById('stLibGridOuter');
+    if (!grid) return 16;
+    const style = window.getComputedStyle(grid);
+    const cols  = style.gridTemplateColumns.split(' ').filter(s => s.trim()).length || 4;
+    return cols * 2;
+}
+
+window.stLoadLibraryRecent = async function() {
+    if (LIB.libLoaded) {
+        const n = stGetTwoRowCount();
+        stRenderLibGrid(LIB.allMedia.slice(0, n));
+        stUpdateShowAllRow(LIB.allMedia.length, n);
+        return;
+    }
+    const grid  = document.getElementById('stLibGridOuter');
+    const wrap  = document.getElementById('stLibGridWrap');
+    const empty = document.getElementById('stLibGridEmpty');
+    wrap.style.display = ''; empty.style.display = 'none';
+    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--text-dim);font-size:0.82rem;padding:24px 0;text-align:center"><div class="spinner" style="margin:0 auto 8px"></div>加载中…</div>`;
+    try {
+        const r    = await fetch(`${API_BASE}/api/subtitle/library`);
+        const data = await r.json();
+        if (data.error) throw new Error(data.error);
+        LIB.allMedia  = data.items || [];
+        LIB.libLoaded = true;
+        const n = stGetTwoRowCount();
+        stRenderLibGrid(LIB.allMedia.slice(0, n));
+        stUpdateShowAllRow(LIB.allMedia.length, n);
+    } catch(e) {
+        grid.innerHTML = `<div style="grid-column:1/-1;color:var(--error);font-size:0.82rem;padding:20px 0;text-align:center">加载失败: ${stEsc(e.message)}</div>`;
+    }
+};
+
+function stUpdateShowAllRow(total, shown) {
+    const row = document.getElementById('stLibShowAllRow');
+    const btn = document.getElementById('stLibShowAllBtn');
+    if (!row) return;
+    if (total <= shown) { row.style.display = 'none'; return; }
+    row.style.display = '';
+    LIB._showingAll = false;
+    btn.innerHTML = `查看全部 <span style="font-family:'DM Mono',monospace;opacity:0.7">${total} 部</span>`;
+}
+
+window.stLibToggleShowAll = function() {
+    if (!LIB.libLoaded) return;
+    LIB._showingAll = !LIB._showingAll;
+    const btn = document.getElementById('stLibShowAllBtn');
+    if (LIB._showingAll) {
+        stRenderLibGrid(LIB.allMedia);
+        if (btn) btn.innerHTML = '收起 ↑';
+    } else {
+        const n = stGetTwoRowCount();
+        stRenderLibGrid(LIB.allMedia.slice(0, n));
+        if (btn) btn.innerHTML = `查看全部 <span style="font-family:'DM Mono',monospace;opacity:0.7">${LIB.allMedia.length} 部</span>`;
+    }
+};
+
+window.stLoadLibraryMedia = async function(forceRefresh) {
+    if (LIB.libLoaded && !forceRefresh) return;
+    LIB.libLoaded = false;
+    const grid  = document.getElementById('stLibGridOuter');
+    const wrap  = document.getElementById('stLibGridWrap');
+    const empty = document.getElementById('stLibGridEmpty');
+    wrap.style.display = ''; empty.style.display = 'none';
+    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--text-dim);font-size:0.82rem;padding:24px 0;text-align:center"><div class="spinner" style="margin:0 auto 8px"></div>加载中…</div>`;
+    try {
+        const r    = await fetch(`${API_BASE}/api/subtitle/library`);
+        const data = await r.json();
+        if (data.error) throw new Error(data.error);
+        LIB.allMedia  = data.items || [];
+        LIB.libLoaded = true;
+        const q = document.getElementById('stLibSearch').value.toLowerCase().trim();
+        if (q) {
+            const filtered = LIB.allMedia.filter(m => (m.title||'').toLowerCase().includes(q));
+            stRenderLibGrid(filtered);
+            document.getElementById('stLibShowAllRow').style.display = 'none';
+        } else {
+            const n = stGetTwoRowCount();
+            stRenderLibGrid(LIB.allMedia.slice(0, n));
+            stUpdateShowAllRow(LIB.allMedia.length, n);
+        }
+    } catch(e) {
+        grid.innerHTML = `<div style="grid-column:1/-1;color:var(--error);font-size:0.82rem;padding:20px 0;text-align:center">加载失败: ${stEsc(e.message)}</div>`;
+    }
+};
+
+window.stFilterLibrary = function() {
+    const q = document.getElementById('stLibSearch').value.toLowerCase().trim();
+    const emptyState = document.getElementById('stLibSearchEmpty');
+    if (!q) {
+        if (emptyState) emptyState.style.display = '';
+        document.getElementById('stLibGridWrap').style.display = 'none';
+        document.getElementById('stLibGridEmpty').style.display = 'none';
+        document.getElementById('stLibShowAllRow').style.display = 'none';
+        return;
+    }
+    if (emptyState) emptyState.style.display = 'none';
+    document.getElementById('stLibShowAllRow').style.display = 'none';
+    if (!LIB.libLoaded) { stLoadLibraryMedia(); return; }
+    const filtered = LIB.allMedia.filter(m => (m.title||'').toLowerCase().includes(q));
+    stRenderLibGrid(filtered);
+};
+
+function stRenderLibGrid(items) {
+    const grid  = document.getElementById('stLibGridOuter');
+    const wrap  = document.getElementById('stLibGridWrap');
+    const empty = document.getElementById('stLibGridEmpty');
+    stLibCloseExpand();
+    if (!items.length) { wrap.style.display = 'none'; empty.style.display = ''; return; }
+    wrap.style.display = ''; empty.style.display = 'none';
+    const frag = document.createDocumentFragment();
+    const cards = [];
+    items.forEach(m => {
+        const title   = m.title || m.name || '';
+        const path    = m.path  || '';
+        const isMovie = (m.type === '电影' || m.type === 'movie');
+        const div     = document.createElement('div');
+        div.className = 'st-media-card';
+        div.dataset.tmdbid  = m.tmdbid || '';
+        div.dataset.path    = path;
+        div.dataset.title   = title;
+        div.dataset.isMovie = isMovie ? '1' : '0';
+        const posterSrc = m.poster || '';
+        div.innerHTML = `
+            ${posterSrc ? `<img class="st-media-card-poster" src="${stEscAttr(posterSrc)}" loading="lazy">` : '<div class="st-media-card-poster"></div>'}
+            <div class="st-media-card-type ${isMovie ? 'st-media-card-type-movie' : 'st-media-card-type-tv'}">${isMovie ? '电影' : '剧集'}</div>
+            <div class="st-media-card-overlay">
+                <div class="st-media-card-title">${stEsc(title)}</div>
+                <div class="st-media-card-meta">${stEsc(m.year || '')}</div>
+            </div>`;
+        div.addEventListener('click', () => {
+            if (isMovie) stLibSetPath(path, title);
+            else stLibOpenSeriesInline(div, m.tmdbid || '', title, path);
+        });
+        frag.appendChild(div);
+        cards.push(div);
+    });
+    grid.innerHTML = '';
+    grid.appendChild(frag);
+    cards.forEach((c, i) => setTimeout(() => c.classList.add('visible'), i * 20));
+}
+
+window.stLibOpenSeriesInline = async function(cardEl, tmdbid, seriesTitle, seriesPath) {
+    if (LIB.expandCardEl === cardEl) { stLibCloseExpand(); return; }
+    stLibCloseExpand();
+    LIB.expandCardEl = cardEl;
+    cardEl.classList.add('selected');
+
+    const grid     = document.getElementById('stLibGridOuter');
+    const allCards = Array.from(grid.querySelectorAll('.st-media-card'));
+    const idx      = allCards.indexOf(cardEl);
+    const gridStyle = window.getComputedStyle(grid);
+    const cols = gridStyle.gridTemplateColumns.split(' ').filter(s => s.trim()).length || 4;
+    const rowEnd = Math.min(allCards.length - 1, idx - (idx % cols) + cols - 1);
+    let afterEl = allCards[rowEnd] || cardEl;
+
+    const row = document.createElement('div');
+    row.className = 'st-lib-expand-row';
+    row.id = 'stLibExpandRow';
+    row.innerHTML = `
+        <div class="st-expand-header">
+            <div>
+                <div class="st-expand-title">📺 ${stEsc(seriesTitle)}</div>
+                <div class="st-expand-sub" id="stLibExpandSub">加载中…</div>
+            </div>
+            <button class="st-expand-close" onclick="stLibCloseExpand()" title="关闭">✕</button>
+        </div>
+        <div class="st-expand-body">
+            <div id="stLibExpandLoading" style="color:var(--text-dim);font-size:0.82rem;padding:10px 0;text-align:center">
+                <div class="spinner" style="margin:0 auto 6px"></div>加载集数…
+            </div>
+            <div id="stLibExpandError" style="display:none" class="st-warn-box"></div>
+            <div class="st-season-tabs" id="stLibExpandSeasonTabs"></div>
+            <div class="st-ep-actions" id="stLibExpandActions" style="display:none">
+                <span class="st-ep-sel-count" id="stLibEpSelCount">已选 0 集</span>
+                <div style="display:flex;gap:6px">
+                    <button class="st-btn st-btn-ghost st-btn-sm" onclick="stLibSelectAllSeason()">全选本季</button>
+                    <button class="st-btn st-btn-ghost st-btn-sm" onclick="stLibClearSelection()">清空</button>
+                </div>
+            </div>
+            <div class="st-ep-grid" id="stLibExpandEpGrid"></div>
+            <div class="st-expand-config" id="stLibExpandConfig" style="display:none">
+                <div class="st-form-row">
+                    <label class="st-label">输出模式</label>
+                    <select class="st-select" id="stLibMode">
+                        <option value="bilingual">双语（译文+原文）</option>
+                        <option value="trans">仅译文</option>
+                    </select>
+                </div>
+                <div style="flex-shrink:0;align-self:flex-end">
+                    <div style="font-size:0.68rem;color:var(--text-dim);margin-bottom:6px">服务商：<strong id="stLibTVProviderLabel">—</strong></div>
+                    <button class="st-btn st-btn-primary" id="stLibBtnStart" onclick="stLibStart()" disabled style="white-space:nowrap">▶ 开始机翻</button>
+                </div>
+            </div>
+        </div>`;
+    afterEl.after(row);
+    LIB.expandRowEl = row;
+    stRefreshProviderLabel();
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    LIB.episodes = []; LIB.selectedPaths = []; LIB.currentSeason = null; LIB.isTV = true;
+
+    try {
+        const r = await fetch(`${API_BASE}/api/subtitle/episodes`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ tmdbid, series_path: seriesPath })
+        });
+        const d = await r.json();
+        if (d.error) throw new Error(d.error);
+        LIB.episodes = d.episodes || [];
+        document.getElementById('stLibExpandLoading').style.display = 'none';
+        if (!LIB.episodes.length) {
+            const errEl = document.getElementById('stLibExpandError');
+            errEl.style.display = '';
+            errEl.textContent = '未找到集文件，请先运行 cache_builder.py 更新缓存';
+            return;
+        }
+        document.getElementById('stLibExpandSub').textContent = `共 ${LIB.episodes.length} 集`;
+        const seasons = [...new Set(LIB.episodes.map(e => e.season))].filter(s=>s!=null).sort((a,b)=>a-b);
+        const tabsEl  = document.getElementById('stLibExpandSeasonTabs');
+        if (seasons.length > 1) {
+            seasons.forEach((sn, i) => {
+                const btn = document.createElement('button');
+                btn.className   = 'st-season-tab' + (i===0?' active':'');
+                btn.textContent = `第 ${sn} 季`;
+                btn.onclick = () => {
+                    document.querySelectorAll('.st-season-tab').forEach(b=>b.classList.remove('active'));
+                    btn.classList.add('active');
+                    stLibRenderEpGrid(sn);
+                };
+                tabsEl.appendChild(btn);
+            });
+        }
+        stLibRenderEpGrid(seasons[0] ?? null);
+    } catch(e) {
+        document.getElementById('stLibExpandLoading').style.display = 'none';
+        const errEl = document.getElementById('stLibExpandError');
+        errEl.style.display = ''; errEl.textContent = '加载失败：' + e.message;
+    }
+};
+
+function stLibRenderEpGrid(season) {
+    LIB.currentSeason = season;
+    const eps    = season != null ? LIB.episodes.filter(e=>e.season===season) : LIB.episodes;
+    const gridEl = document.getElementById('stLibExpandEpGrid');
+    if (!gridEl) return;
+    gridEl.innerHTML = eps.map(ep => {
+        const checked = LIB.selectedPaths.includes(ep.path);
+        return `<div class="st-ep-item${checked?' checked':''}" onclick="stLibToggleEp('${stEscAttr(ep.path)}',this)">
+            <input type="checkbox" class="st-ep-cb" ${checked?'checked':''} onclick="event.stopPropagation();stLibToggleEp('${stEscAttr(ep.path)}',this.closest('.st-ep-item'))">
+            <span class="st-ep-item-label">${stEsc(ep.label)}</span>
+            <span class="st-ep-item-title">${stEsc(ep.title)}</span>
+        </div>`;
+    }).join('');
+    document.getElementById('stLibExpandActions').style.display = 'flex';
+    stLibUpdateSelCount();
+}
+
+window.stLibCloseExpand = function() {
+    if (LIB.expandRowEl) { LIB.expandRowEl.remove(); LIB.expandRowEl = null; }
+    if (LIB.expandCardEl) { LIB.expandCardEl.classList.remove('selected'); LIB.expandCardEl = null; }
+    LIB.selectedPaths = []; LIB.episodes = [];
+};
+
+window.stLibToggleEp = function(path, rowEl) {
+    const idx = LIB.selectedPaths.indexOf(path);
+    const cb  = rowEl ? rowEl.querySelector('.st-ep-cb') : null;
+    if (idx === -1) {
+        LIB.selectedPaths.push(path);
+        if (rowEl) { rowEl.classList.add('checked'); if(cb) cb.checked=true; }
+    } else {
+        LIB.selectedPaths.splice(idx, 1);
+        if (rowEl) { rowEl.classList.remove('checked'); if(cb) cb.checked=false; }
+    }
+    stLibUpdateSelCount();
+};
+window.stLibSelectAllSeason = function() {
+    const eps = LIB.currentSeason != null ? LIB.episodes.filter(e=>e.season===LIB.currentSeason) : LIB.episodes;
+    eps.forEach(ep => { if (!LIB.selectedPaths.includes(ep.path)) LIB.selectedPaths.push(ep.path); });
+    stLibRenderEpGrid(LIB.currentSeason);
+};
+window.stLibClearSelection = function() { LIB.selectedPaths = []; stLibRenderEpGrid(LIB.currentSeason); };
+
+function stLibUpdateSelCount() {
+    const n      = LIB.selectedPaths.length;
+    const cntEl  = document.getElementById('stLibEpSelCount');
+    const cfgEl  = document.getElementById('stLibExpandConfig');
+    const btnEl  = document.getElementById('stLibBtnStart');
+    if (cntEl) cntEl.textContent = `已选 ${n} 集`;
+    if (cfgEl) cfgEl.style.display = n > 0 ? '' : 'none';
+    if (btnEl) { btnEl.disabled = n === 0; btnEl.textContent = n > 1 ? `▶ 开始机翻（${n} 集）` : '▶ 开始机翻'; }
+}
+
+window.stLibSetPath = function(path, label) {
+    if (!path) { showToast('该条目暂无可用文件路径', 'error'); return; }
+    LIB.isTV = false; LIB.selectedPath = path; LIB.selectedPaths = [];
+    stLibCloseExpand();
+    document.getElementById('stLibSelectedPath').textContent = label || path;
+    document.getElementById('stLibStreamWrap').style.display  = 'none';
+    document.getElementById('stLibNoStream').style.display    = 'none';
+    stRefreshProviderLabel();
+    stLibGoToStep(2);
+    stProbeStreams();
+};
+
+window.stProbeStreams = async function() {
+    if (!LIB.selectedPath) return;
+    const wrap = document.getElementById('stLibStreamWrap');
+    const warn = document.getElementById('stLibNoStream');
+    wrap.style.display = ''; warn.style.display = 'none';
+    LIB.selectedStreamIdx = null;
+    document.getElementById('stLibStreamList').innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem">探测中…</div>';
+    try {
+        const r = await fetch(`${API_BASE}/api/subtitle/probe`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ path: LIB.selectedPath })
+        });
+        const d = await r.json();
+        if (d.error) throw new Error(d.error);
+        const subs = d.streams.filter(s => s.type === 'Subtitle');
+        if (!subs.length) {
+            wrap.style.display = 'none'; warn.style.display = '';
+        } else {
+            LIB.selectedStreamIdx = subs[0].index;
+            document.getElementById('stLibStreamList').innerHTML = subs.map((s, i) => {
+                const label = [s.lang, s.title].filter(Boolean).join(' · ') || '未知语言';
+                return `<div class="st-stream-item" id="stStream-${stEsc(s.index)}" onclick="stSelectStream('${stEscAttr(s.index)}')" style="cursor:pointer;${i===0?'background:var(--accent-dim);border:1px solid var(--accent-border);':'border:1px solid transparent;'}">
+                    <span style="font-size:0.82rem;font-family:'DM Mono',monospace">${stEsc(label)}</span>
+                    <div style="display:flex;gap:5px;align-items:center">
+                        <span class="st-tag st-tag-success">#${stEsc(s.index)}</span>
+                        ${i===0 ? '<span style="font-size:0.7rem;color:var(--accent)">✓ 已选</span>' : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    } catch(e) {
+        document.getElementById('stLibStreamList').innerHTML = `<div style="color:var(--error);font-size:0.8rem">${stEsc(e.message)}</div>`;
+    }
+};
+
+window.stSelectStream = function(idx) {
+    LIB.selectedStreamIdx = idx;
+    document.querySelectorAll('#stLibStreamList .st-stream-item').forEach(el => {
+        el.style.background = ''; el.style.border = '1px solid transparent';
+        const mark = el.querySelector('.st-stream-selected-mark');
+        if (mark) mark.remove();
+    });
+    const sel = document.getElementById('stStream-' + idx);
+    if (sel) {
+        sel.style.background = 'var(--accent-dim)';
+        sel.style.border = '1px solid var(--accent-border)';
+        const tags = sel.querySelector('div[style*="display:flex"]');
+        if (tags && !tags.querySelector('.st-stream-selected-mark')) {
+            const mark = document.createElement('span');
+            mark.className = 'st-stream-selected-mark';
+            mark.style.cssText = 'font-size:0.7rem;color:var(--accent)';
+            mark.textContent = '✓ 已选';
+            tags.appendChild(mark);
+        }
+    }
+};
+
+async function stLibExtractSRT(videoPath) {
+    const streamIdx = LIB.selectedStreamIdx ?? null;
+    const r = await fetch(`${API_BASE}/api/subtitle/start`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ path: videoPath, stream_index: streamIdx })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    LIB.taskId = d.task_id;
+    return new Promise((resolve, reject) => {
+        const timer = setInterval(async () => {
+            if (LIB.cancelFlag) { clearInterval(timer); resolve(null); return; }
+            try {
+                const sr = await fetch(`${API_BASE}/api/subtitle/status/` + LIB.taskId);
+                const sd = await sr.json();
+                stLibSyncLog(sd.log || []);
+                const last = (sd.log||[]).slice(-1)[0];
+                if (last) stLibSetStatus(last.msg, null);
+                if (sd.status === 'done')       { clearInterval(timer); resolve(sd.result); }
+                else if (sd.status === 'error') { clearInterval(timer); reject(new Error(sd.error||'提取失败')); }
+                else if (sd.status === 'cancelled') { clearInterval(timer); resolve(null); }
+            } catch(e) {}
+        }, 800);
+        LIB.polling = timer;
+    });
+}
+
+async function stLibTranslateSRT(srtText, cfg, outputMode, totalFiles, doneFiles) {
+    const blocks = stParseSRT(srtText);
+    if (!blocks.length) throw new Error('SRT 解析为空');
+    const systemPrompt = document.getElementById('stSystemPrompt').value ||
+        '你是专业影视字幕翻译，直接输出符合SRT格式的中文译文，不要解释，不要markdown，保持原序号和时间码不变。';
+    const translations = await stTranslateBatches(blocks, cfg, systemPrompt,
+        (done, total, msg) => {
+            const pct = Math.round((doneFiles / totalFiles + done / total / totalFiles) * 100);
+            stLibSetStatus(msg, pct);
+            stLibAddLogLine(msg);
+        }
+    );
+    return blocks.map((b, i) => {
+        const tr = translations[i] || '';
+        const content = outputMode === 'trans'
+            ? (tr || b.rawContent)
+            : (tr ? `${tr}\n${b.rawContent}` : b.rawContent);
+        return `${b.idx}\n${b.time}\n${content}`;
+    }).join('\n\n') + '\n';
+}
+
+async function stLibSaveSubtitle(videoPath, srtContent, outputMode) {
+    const r = await fetch(`${API_BASE}/api/subtitle/save`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ video_path: videoPath, srt_content: srtContent, output_mode: outputMode })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    return d;
+}
+
+async function stLibProcessOne(videoPath, cfg, outputMode, totalFiles, doneFiles) {
+    const epName = videoPath.split('/').pop();
+    stLibSetStatus(`① 提取字幕：${epName}`, Math.round(doneFiles / totalFiles * 100));
+    const extracted = await stLibExtractSRT(videoPath);
+    if (!extracted) return null;
+    stLibSetStatus(`② 翻译中：${epName}`, Math.round(doneFiles / totalFiles * 100) + 2);
+    const srtOut = await stLibTranslateSRT(extracted.srt_text, cfg, outputMode, totalFiles, doneFiles);
+    if (LIB.cancelFlag) return null;
+    stLibSetStatus(`③ 写回：${epName}`, Math.round((doneFiles + 0.9) / totalFiles * 100));
+    const saved = await stLibSaveSubtitle(videoPath, srtOut, outputMode);
+    return { out_path: saved.out_path, out_name: saved.out_name, srt_content: srtOut, blocks: extracted.blocks, translated: srtOut.split('\n\n').filter(b => b.trim()).length };
+}
+
+window.stLibStart = async function() {
+    const paths = LIB.selectedPaths.slice();
+    if (!paths.length) { showToast('请先选择集数', 'error'); return; }
+    const cfg        = stGetCfg(ST.currentProvider);
+    const outputMode = document.getElementById('stLibMode')?.value || 'bilingual';
+    stLibGoToStep(3);
+    document.getElementById('stLibProgressLog').innerHTML = '';
+    const labelEl = document.getElementById('stLibProgressLabel');
+    if (labelEl) labelEl.textContent = `共 ${paths.length} 集，逐集翻译`;
+    stLibSetStatus('准备中…', 0);
+    LIB.cancelFlag = false;
+    let doneCount = 0, lastResult = null;
+    for (const path of paths) {
+        if (LIB.cancelFlag) break;
+        stLibAddLogLine(`▶ (${doneCount+1}/${paths.length}) ${path.split('/').pop()}`);
+        try {
+            lastResult = await stLibProcessOne(path, cfg, outputMode, paths.length, doneCount);
+            if (lastResult === null) break;
+            doneCount++;
+            stLibAddLogLine(`✅ 完成 ${doneCount}/${paths.length}：${lastResult.out_name}`);
+        } catch(e) {
+            stLibAddLogLine(`✗ ${path.split('/').pop()}: ${e.message}`);
+            doneCount++;
+        }
+    }
+    if (!LIB.cancelFlag) {
+        stLibSetStatus(`✅ 全部完成！共 ${doneCount} 集`, 100);
+        if (lastResult) stLibShowResult({ ...lastResult, translated: `${doneCount} 集` });
+        showToast(`机翻完成，共 ${doneCount} 集`, 'success');
+    }
+};
+
+window.stLibStartMovie = async function() {
+    if (!LIB.selectedPath) { showToast('请先选择视频文件', 'error'); return; }
+    const cfg        = stGetCfg(ST.currentProvider);
+    const outputMode = document.getElementById('stLibModeMovie')?.value || 'bilingual';
+    stLibGoToStep(3);
+    document.getElementById('stLibProgressLog').innerHTML = '';
+    const labelEl = document.getElementById('stLibProgressLabel');
+    if (labelEl) labelEl.textContent = LIB.selectedPath.split('/').pop();
+    stLibSetStatus('准备中…', 0);
+    LIB.cancelFlag = false;
+    try {
+        const result = await stLibProcessOne(LIB.selectedPath, cfg, outputMode, 1, 0);
+        if (result) stLibShowResult(result);
+    } catch(e) {
+        showToast('失败: ' + e.message, 'error');
+        stLibAddLogLine('❌ ' + e.message);
+    }
+};
+
+function stLibSyncLog(logs) {
+    if (!logs || !logs.length) return;
+    const el = document.getElementById('stLibProgressLog');
+    if (!el) return;
+    logs.forEach(l => {
+        const id = `llg-${l.ts}-${(l.msg||'').slice(0,12).replace(/\s/g,'')}`;
+        if (!document.getElementById(id)) {
+            const cls = l.msg.includes('✅')||l.msg.includes('✓') ? 'st-log-ok' : l.msg.includes('❌')||l.msg.includes('✗') ? 'st-log-err' : '';
+            el.innerHTML += `<div id="${stEsc(id)}" class="st-log-line"><span class="st-log-ts">${stEsc(l.ts)}</span><span class="${cls}">${stEsc(l.msg)}</span></div>`;
+        }
+    });
+    el.scrollTop = el.scrollHeight;
+}
+function stLibAddLogLine(msg) {
+    const el  = document.getElementById('stLibProgressLog');
+    if (!el) return;
+    const ts  = new Date().toLocaleTimeString();
+    const cls = msg.includes('✅')||msg.includes('✓') ? 'st-log-ok' : msg.includes('❌')||msg.includes('✗') ? 'st-log-err' : '';
+    el.innerHTML += `<div class="st-log-line"><span class="st-log-ts">${stEsc(ts)}</span><span class="${cls}">${stEsc(msg)}</span></div>`;
+    el.scrollTop = el.scrollHeight;
+}
+function stLibSetStatus(msg, pct) {
+    const s = document.getElementById('stLibProgressStatus');
+    if (s) s.textContent = msg || '';
+    if (pct !== null && pct !== undefined) {
+        const f = document.getElementById('stLibProgressFill');
+        const p = document.getElementById('stLibProgressPct');
+        if (f) f.style.width = pct + '%';
+        if (p) p.textContent = pct + '%';
+    }
+}
+function stLibShowResult(result) {
+    document.getElementById('stLibResBlocks').textContent     = result?.blocks     ?? '—';
+    document.getElementById('stLibResTranslated').textContent = result?.translated ?? '—';
+    const pathWrap = document.getElementById('stLibResPathWrap');
+    const pathEl   = document.getElementById('stLibResPath');
+    if (result?.out_path) {
+        if (pathEl) pathEl.textContent = result.out_path;
+        if (pathWrap) pathWrap.style.display = '';
+    }
+    window._stLastSrtContent  = result?.srt_content  || null;
+    window._stLastSrtFilename = result?.out_name      || 'subtitle.srt';
+    const dlBtn = document.getElementById('stLibResDownloadBtn');
+    if (dlBtn) dlBtn.style.display = result?.srt_content ? '' : 'none';
+    stLibGoToStep(4);
+    showToast('字幕翻译完成！', 'success');
+}
+
+window.stDownloadResult = function() {
+    const content  = window._stLastSrtContent;
+    const filename = window._stLastSrtFilename || 'subtitle.srt';
+    if (!content) { showToast('暂无可下载的字幕内容', 'error'); return; }
+    stDownloadText(content, filename);
+    showToast('字幕已下载：' + filename, 'success');
+};
+
+window.stLibCancel = async function() {
+    LIB.cancelFlag = true;
+    if (LIB.taskId) await fetch(`${API_BASE}/api/subtitle/cancel/` + LIB.taskId, {method:'POST'}).catch(()=>{});
+    clearInterval(LIB.polling);
+    stLibGoToStep(1);
+    showToast('已取消', 'info');
+};
+
+// 工具函数
+function stEsc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function stEscAttr(s) { return (s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
+
+})(); // end ST module
+</script>
+</body>
+</html>
