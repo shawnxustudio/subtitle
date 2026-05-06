@@ -512,7 +512,8 @@ html, body {
 .st-pulsing { animation: stPulse 1.4s ease-in-out infinite; }
 
 /* 媒体卡片网格 */
-#stLibGridOuter { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--scroll-gap); align-items: start; }
+#stLibGridOuter { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--scroll-gap); align-items: start; }
+@media (max-width: 760px) { #stLibGridOuter { grid-template-columns: repeat(4, 1fr); gap: 6px; } }
 @media (max-width: 600px) { #stLibGridOuter { grid-template-columns: repeat(3, 1fr); gap: 6px; } }
 
 .st-media-card {
@@ -805,7 +806,7 @@ html, body {
           <div>输入片名开始搜索</div>
         </div>
         <div id="stLibGridWrap" style="display:none">
-          <div id="stLibGridOuter" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:start"></div>
+          <div id="stLibGridOuter"></div>
         </div>
         <div id="stLibGridEmpty" style="display:none;padding:24px 0;text-align:center;color:var(--text-dim);font-size:0.84rem;font-family:'DM Mono',monospace">换个关键词试试</div>
         <div id="stLibShowAllRow" style="display:none;padding:10px 0 4px;text-align:center">
