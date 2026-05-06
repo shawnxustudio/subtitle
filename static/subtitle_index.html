@@ -1554,7 +1554,7 @@ function stParseAIResp(response, blocks) {
 }
 async function stTranslateBatches(blocks, cfg, systemPrompt, onProgress) {
     const batchSize = Math.max(1, cfg.batchSize), qps = Math.max(1, cfg.qps);
-    const results = new Array(blocks.length).fill('');
+    const results = new Array(blocks.length).fill(null); // null = 未翻译
     const batches = [];
     for (let i = 0; i < blocks.length; i += batchSize) batches.push({ start:i, items:blocks.slice(i, i+batchSize) });
     let done = 0;
@@ -1574,7 +1574,28 @@ async function stTranslateBatches(blocks, cfg, systemPrompt, onProgress) {
         })
     );
     await Promise.all(promises);
-    return results;
+
+    // 第一轮结束后，逐条重试失败项
+    const failedIdx = results.map((r, i) => r === null ? i : -1).filter(i => i !== -1);
+    if (failedIdx.length && !ST.cancelFlag) {
+        onProgress(done, blocks.length, `↻ 开始重试 ${failedIdx.length} 条失败项…`);
+        for (let j = 0; j < failedIdx.length; j++) {
+            if (ST.cancelFlag) break;
+            const i = failedIdx[j];
+            await new Promise(res => setTimeout(res, 1000 / qps));
+            try {
+                const resp = await stCallAI(cfg, systemPrompt, stBuildUserMsg([blocks[i]]));
+                const trans = stParseAIResp(resp, [blocks[i]]);
+                results[i] = trans[0] || '';
+                onProgress(done, blocks.length, `↻ [${j+1}/${failedIdx.length}] 重试成功: #${blocks[i].idx}`);
+            } catch(e) {
+                results[i] = '';
+                onProgress(done, blocks.length, `↻ [${j+1}/${failedIdx.length}] 重试失败: #${blocks[i].idx}: ${e.message}`);
+            }
+        }
+    }
+
+    return results.map(r => r === null ? '' : r);
 }
 
 window.stStartTranslation = async function() {
