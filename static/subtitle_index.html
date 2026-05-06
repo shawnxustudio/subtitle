@@ -512,9 +512,10 @@ html, body {
 .st-pulsing { animation: stPulse 1.4s ease-in-out infinite; }
 
 /* 媒体卡片网格 */
-#stLibGridOuter { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--scroll-gap); align-items: start; }
-@media (max-width: 760px) { #stLibGridOuter { grid-template-columns: repeat(4, 1fr); gap: 6px; } }
-@media (max-width: 600px) { #stLibGridOuter { grid-template-columns: repeat(3, 1fr); gap: 6px; } }
+#stLibGridOuter { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--scroll-gap); align-items: start; }
+@media (max-width: 900px) { #stLibGridOuter { grid-template-columns: repeat(5, 1fr); gap: 6px; } }
+@media (max-width: 700px) { #stLibGridOuter { grid-template-columns: repeat(4, 1fr); gap: 6px; } }
+@media (max-width: 500px) { #stLibGridOuter { grid-template-columns: repeat(3, 1fr); gap: 6px; } }
 
 .st-media-card {
     position: relative; border-radius: var(--radius-sm); overflow: hidden;
