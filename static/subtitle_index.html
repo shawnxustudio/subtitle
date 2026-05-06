@@ -456,7 +456,8 @@ html, body {
 .st-path-text.set { color: var(--text); }
 
 /* stream list */
-.st-stream-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: rgba(255,255,255,0.28); margin-bottom: 5px; }
+.st-stream-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: rgba(255,255,255,0.28); margin-bottom: 5px; cursor: pointer; transition: all 0.16s; }
+.st-stream-item.selected { background: var(--accent-dim); border-color: var(--accent-border); }
 
 /* tag */
 .st-tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 20px; font-size: 0.68rem; font-weight: 600; font-family: 'DM Mono', monospace; }
@@ -1998,7 +1999,7 @@ window.stProbeStreams = async function() {
             LIB.selectedStreamIdx = subs[0].index;
             document.getElementById('stLibStreamList').innerHTML = subs.map((s, i) => {
                 const label = [s.lang, s.title].filter(Boolean).join(' · ') || '未知语言';
-                return `<div class="st-stream-item" id="stStream-${stEsc(s.index)}" onclick="stSelectStream('${stEscAttr(s.index)}')" style="cursor:pointer;${i===0?'background:var(--accent-dim);border:1px solid var(--accent-border);':'border:1px solid transparent;'}">
+                return `<div class="st-stream-item${i===0?' selected':''}" id="stStream-${stEsc(s.index)}" onclick="stSelectStream('${stEscAttr(s.index)}')"
                     <span style="font-size:0.82rem;font-family:'DM Mono',monospace">${stEsc(label)}</span>
                     <div style="display:flex;gap:5px;align-items:center">
                         <span class="st-tag st-tag-success">#${stEsc(s.index)}</span>
@@ -2015,14 +2016,13 @@ window.stProbeStreams = async function() {
 window.stSelectStream = function(idx) {
     LIB.selectedStreamIdx = idx;
     document.querySelectorAll('#stLibStreamList .st-stream-item').forEach(el => {
-        el.style.background = ''; el.style.border = '1px solid transparent';
+        el.classList.remove('selected');
         const mark = el.querySelector('.st-stream-selected-mark');
         if (mark) mark.remove();
     });
     const sel = document.getElementById('stStream-' + idx);
     if (sel) {
-        sel.style.background = 'var(--accent-dim)';
-        sel.style.border = '1px solid var(--accent-border)';
+        sel.classList.add('selected');
         const tags = sel.querySelector('div[style*="display:flex"]');
         if (tags && !tags.querySelector('.st-stream-selected-mark')) {
             const mark = document.createElement('span');
