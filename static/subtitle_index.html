@@ -1701,28 +1701,19 @@ function stGetTwoRowCount() {
 }
 
 window.stLoadLibraryRecent = async function() {
-    if (LIB.libLoaded) {
-        const n = stGetTwoRowCount();
-        stRenderLibGrid(LIB.allMedia.slice(0, n));
-        stUpdateShowAllRow(LIB.allMedia.length, n);
-        return;
-    }
-    const grid  = document.getElementById('stLibGridOuter');
-    const wrap  = document.getElementById('stLibGridWrap');
-    const empty = document.getElementById('stLibGridEmpty');
-    wrap.style.display = ''; empty.style.display = 'none';
-    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--text-dim);font-size:0.82rem;padding:24px 0;text-align:center"><div class="spinner" style="margin:0 auto 8px"></div>加载中…</div>`;
+    if (LIB.libLoaded) return;
+    // 静默后台拉取，不渲染卡片
     try {
         const r    = await fetch(`${API_BASE}/api/subtitle/library`);
         const data = await r.json();
         if (data.error) throw new Error(data.error);
         LIB.allMedia  = data.items || [];
         LIB.libLoaded = true;
-        const n = stGetTwoRowCount();
-        stRenderLibGrid(LIB.allMedia.slice(0, n));
-        stUpdateShowAllRow(LIB.allMedia.length, n);
+        // 有搜索词时立即显示结果，否则保持搜索空状态
+        const q = document.getElementById('stLibSearch').value.toLowerCase().trim();
+        if (q) stFilterLibrary();
     } catch(e) {
-        grid.innerHTML = `<div style="grid-column:1/-1;color:var(--error);font-size:0.82rem;padding:20px 0;text-align:center">加载失败: ${stEsc(e.message)}</div>`;
+        console.warn('[library]', e.message);
     }
 };
 
@@ -1753,11 +1744,11 @@ window.stLibToggleShowAll = function() {
 window.stLoadLibraryMedia = async function(forceRefresh) {
     if (LIB.libLoaded && !forceRefresh) return;
     LIB.libLoaded = false;
-    const grid  = document.getElementById('stLibGridOuter');
-    const wrap  = document.getElementById('stLibGridWrap');
-    const empty = document.getElementById('stLibGridEmpty');
-    wrap.style.display = ''; empty.style.display = 'none';
-    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--text-dim);font-size:0.82rem;padding:24px 0;text-align:center"><div class="spinner" style="margin:0 auto 8px"></div>加载中…</div>`;
+    const emptyState = document.getElementById('stLibSearchEmpty');
+    if (emptyState) emptyState.style.display = '';
+    document.getElementById('stLibGridWrap').style.display = 'none';
+    document.getElementById('stLibGridEmpty').style.display = 'none';
+    document.getElementById('stLibShowAllRow').style.display = 'none';
     try {
         const r    = await fetch(`${API_BASE}/api/subtitle/library`);
         const data = await r.json();
@@ -1765,17 +1756,10 @@ window.stLoadLibraryMedia = async function(forceRefresh) {
         LIB.allMedia  = data.items || [];
         LIB.libLoaded = true;
         const q = document.getElementById('stLibSearch').value.toLowerCase().trim();
-        if (q) {
-            const filtered = LIB.allMedia.filter(m => (m.title||'').toLowerCase().includes(q));
-            stRenderLibGrid(filtered);
-            document.getElementById('stLibShowAllRow').style.display = 'none';
-        } else {
-            const n = stGetTwoRowCount();
-            stRenderLibGrid(LIB.allMedia.slice(0, n));
-            stUpdateShowAllRow(LIB.allMedia.length, n);
-        }
+        if (q) stFilterLibrary();
+        else showToast(`媒体库已刷新，共 ${LIB.allMedia.length} 部`, 'success');
     } catch(e) {
-        grid.innerHTML = `<div style="grid-column:1/-1;color:var(--error);font-size:0.82rem;padding:20px 0;text-align:center">加载失败: ${stEsc(e.message)}</div>`;
+        showToast('刷新失败: ' + e.message, 'error');
     }
 };
 
