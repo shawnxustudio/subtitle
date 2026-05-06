@@ -1367,7 +1367,7 @@ window.stRefreshModelList = async function(provider) {
     const valEl = document.getElementById('stModelVal-' + provider);
     if (valEl) valEl.textContent = '刷新中…';
     try {
-        await fetch(`${API_BASE}/api/models/refresh`, { method: 'POST' });
+        await fetch(`${API_BASE}/api/models/${provider}/refresh`, { method: 'POST' });
         showToast(`已触发刷新，约 10 秒后更新 ${stProviderMeta[provider]?.name} 模型列表`, 'info', 4000);
         setTimeout(() => stLoadModelList(provider), 10000);
     } catch(e) {
