@@ -419,12 +419,12 @@ def _build_library_list():
             primary_tag = img_tags.get("Primary") or item.get("PrimaryImageTag") or ""
             poster = f"/api/emby_img?item_id={emby_id}&tag={primary_tag}" if emby_id else ""
             if itype == "Movie":
-                result.append({"title": title, "tmdbid": tmdbid, "type": "电影",
+                result.append({"title": title, "tmdbid": tmdbid, "emby_id": emby_id, "type": "电影",
                                 "year": year, "path": path, "poster": poster, "seasons": []})
             elif itype == "Series":
                 sinfo   = lib.get("series", {}).get(tmdbid, {}) if tmdbid else {}
                 seasons = sinfo.get("seasons", []) if isinstance(sinfo, dict) else []
-                result.append({"title": title, "tmdbid": tmdbid, "type": "剧集",
+                result.append({"title": title, "tmdbid": tmdbid, "emby_id": emby_id, "type": "剧集",
                                 "year": year, "path": path, "poster": poster, "seasons": seasons})
     except Exception as e:
         print(f"_build_library_list error: {e}")
@@ -579,45 +579,17 @@ def subtitle_library():
 def subtitle_episodes():
     if not EMBY_URL or not EMBY_API_KEY:
         return jsonify({"error": "Emby 未配置，请在 .env 中填写 EMBY_URL 和 EMBY_API_KEY"}), 503
-    body        = request.json or {}
-    tmdbid      = body.get("tmdbid", "").strip()
-    series_path = body.get("series_path", "").strip()
-    if not tmdbid and not series_path:
-        return jsonify({"error": "需要 tmdbid 或 series_path"}), 400
+    body           = request.json or {}
+    tmdbid         = body.get("tmdbid", "").strip()
+    series_path    = body.get("series_path", "").strip()
+    series_emby_id = body.get("emby_id", "").strip()
+    if not tmdbid and not series_path and not series_emby_id:
+        return jsonify({"error": "需要 emby_id、tmdbid 或 series_path"}), 400
     try:
-        emby_id  = None
-        lib      = _read_json(EMBY_LIBRARY_FILE) or {}
         ep_cache = _read_json(EMBY_EPISODES_FILE) or {}
-        if tmdbid:
-            sinfo = lib.get("series", {}).get(tmdbid)
-            if isinstance(sinfo, dict):
-                emby_id = sinfo.get("emby_id")
-        if not emby_id and series_path:
-            folder = series_path.rstrip("/").split("/")[-1]
-            for tid, sinfo in lib.get("series", {}).items():
-                if not isinstance(sinfo, dict): continue
-                cached_path = sinfo.get("path", "")
-                if cached_path.endswith(folder) or sinfo.get("name", "") == folder.split(" (")[0]:
-                    emby_id = sinfo.get("emby_id")
-                    tmdbid  = tmdbid or tid
-                    break
-        if emby_id and emby_id in ep_cache:
-            episodes = ep_cache[emby_id]
+        if series_emby_id and series_emby_id in ep_cache:
+            episodes = ep_cache[series_emby_id]
             return jsonify({"episodes": episodes, "count": len(episodes), "source": "cache"})
-        series_emby_id = emby_id
-        if not series_emby_id:
-            search_name = series_path.rstrip("/").split("/")[-1] if series_path else ""
-            if search_name:
-                r = requests.get(f"{EMBY_URL}/Items", params={
-                    "api_key": EMBY_API_KEY, "SearchTerm": search_name,
-                    "IncludeItemTypes": "Series", "Recursive": "true",
-                    "Fields": "ProviderIds,Path", "Limit": 10,
-                }, timeout=15)
-                if r.status_code == 200:
-                    for item in r.json().get("Items", []):
-                        if item.get("Path", "").endswith(search_name):
-                            series_emby_id = item.get("Id")
-                            break
         if not series_emby_id:
             return jsonify({"error": "在 Emby 中找不到该剧集，请先更新缓存"}), 404
         r = requests.get(f"{EMBY_URL}/Items", params={

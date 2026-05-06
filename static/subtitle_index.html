@@ -1797,7 +1797,8 @@ function stRenderLibGrid(items) {
         const isMovie = (m.type === '电影' || m.type === 'movie');
         const div     = document.createElement('div');
         div.className = 'st-media-card';
-        div.dataset.tmdbid  = m.tmdbid || '';
+        div.dataset.tmdbid  = m.tmdbid  || '';
+        div.dataset.embyId  = m.emby_id || '';
         div.dataset.path    = path;
         div.dataset.title   = title;
         div.dataset.isMovie = isMovie ? '1' : '0';
@@ -1811,7 +1812,7 @@ function stRenderLibGrid(items) {
             </div>`;
         div.addEventListener('click', () => {
             if (isMovie) stLibSetPath(path, title);
-            else stLibOpenSeriesInline(div, m.tmdbid || '', title, path);
+            else stLibOpenSeriesInline(div, m.tmdbid || '', title, path, m.emby_id || '');
         });
         frag.appendChild(div);
         cards.push(div);
@@ -1821,7 +1822,7 @@ function stRenderLibGrid(items) {
     cards.forEach((c, i) => setTimeout(() => c.classList.add('visible'), i * 20));
 }
 
-window.stLibOpenSeriesInline = async function(cardEl, tmdbid, seriesTitle, seriesPath) {
+window.stLibOpenSeriesInline = async function(cardEl, tmdbid, seriesTitle, seriesPath, embyId) {
     if (LIB.expandCardEl === cardEl) { stLibCloseExpand(); return; }
     stLibCloseExpand();
     LIB.expandCardEl = cardEl;
@@ -1884,7 +1885,7 @@ window.stLibOpenSeriesInline = async function(cardEl, tmdbid, seriesTitle, serie
     try {
         const r = await fetch(`${API_BASE}/api/subtitle/episodes`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ tmdbid, series_path: seriesPath })
+            body: JSON.stringify({ tmdbid, series_path: seriesPath, emby_id: embyId })
         });
         const d = await r.json();
         if (d.error) throw new Error(d.error);
