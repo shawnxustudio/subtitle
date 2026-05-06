@@ -885,6 +885,9 @@ html, body {
         </div>
         <div id="stLibResPathWrap" style="display:none">
           <div style="font-size:0.76rem;color:var(--text-muted);margin-top:8px">字幕已写入视频同目录，Emby 已自动刷新媒体库。</div>
+          <div style="margin-top:12px">
+            <button class="st-btn st-btn-secondary" id="stLibResDownloadBtn" onclick="stDownloadResult()" style="gap:7px">⬇ 下载字幕文件</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2206,8 +2209,12 @@ function stLibSetStatus(msg, pct) {
 function stLibShowResult(result) {
     document.getElementById('stLibResBlocks').textContent     = result?.blocks     ?? '—';
     document.getElementById('stLibResTranslated').textContent = result?.translated ?? '—';
+    window._stLastSrtContent  = result?.srt_content  || null;
+    window._stLastSrtFilename = result?.out_name      || 'subtitle.srt';
     const pathWrap = document.getElementById('stLibResPathWrap');
     if (pathWrap) pathWrap.style.display = '';
+    const dlBtn = document.getElementById('stLibResDownloadBtn');
+    if (dlBtn) dlBtn.style.display = result?.srt_content ? '' : 'none';
     stLibGoToStep(4);
     showToast('字幕翻译完成！', 'success');
 }
