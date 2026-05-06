@@ -239,13 +239,20 @@ def _st_fail(task_id: str, error: str):
 # ─────────────────────────────────────────────
 #  Docker 路径转换
 # ─────────────────────────────────────────────
+_PATH_MAPS = []
+for _entry in os.environ.get("DOCKER_PATH_MAP", "").split(";"):
+    _entry = _entry.strip()
+    if ":" in _entry:
+        _src, _dst = _entry.split(":", 1)
+        if _src and _dst:
+            _PATH_MAPS.append((_src.strip(), _dst.strip()))
+
 def _docker_to_local(path):
     if not path:
         return path
-    if path.startswith("/volume1"):
-        return path
-    if path.startswith("/video/"):
-        return "/volume1/video/link" + path[len("/video"):]
+    for src, dst in _PATH_MAPS:
+        if path.startswith(src):
+            return dst + path[len(src):]
     return path
 
 # ─────────────────────────────────────────────
