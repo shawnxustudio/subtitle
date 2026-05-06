@@ -884,11 +884,7 @@ html, body {
           <div class="st-stat-box"><div class="st-stat-label">TRANSLATED</div><div class="st-stat-value st-stat-success" id="stLibResTranslated">—</div></div>
         </div>
         <div id="stLibResPathWrap" style="display:none">
-          <div class="st-path-row"><span>💾</span><div class="st-path-text set" id="stLibResPath">—</div></div>
           <div style="font-size:0.76rem;color:var(--text-muted);margin-top:8px">字幕已写入视频同目录，Emby 已自动刷新媒体库。</div>
-          <div style="margin-top:12px">
-            <button class="st-btn st-btn-secondary" id="stLibResDownloadBtn" onclick="stDownloadResult()" style="gap:7px">⬇ 下载字幕文件</button>
-          </div>
         </div>
       </div>
     </div>
@@ -2089,8 +2085,8 @@ async function stLibTranslateSRT(srtText, cfg, outputMode, totalFiles, doneFiles
     const translations = await stTranslateBatches(blocks, cfg, systemPrompt,
         (done, total, msg) => {
             const pct = Math.round((doneFiles / totalFiles + done / total / totalFiles) * 100);
-            stLibSetStatus(msg, pct);
-            stLibAddLogLine(msg);
+            stLibSetStatus(`翻译中… ${done}/${total}`, pct);
+            if (msg.startsWith('✗') || msg.startsWith('↻')) stLibAddLogLine(msg);
         }
     );
     return blocks.map((b, i) => {
@@ -2211,15 +2207,7 @@ function stLibShowResult(result) {
     document.getElementById('stLibResBlocks').textContent     = result?.blocks     ?? '—';
     document.getElementById('stLibResTranslated').textContent = result?.translated ?? '—';
     const pathWrap = document.getElementById('stLibResPathWrap');
-    const pathEl   = document.getElementById('stLibResPath');
-    if (result?.out_path) {
-        if (pathEl) pathEl.textContent = result.out_path;
-        if (pathWrap) pathWrap.style.display = '';
-    }
-    window._stLastSrtContent  = result?.srt_content  || null;
-    window._stLastSrtFilename = result?.out_name      || 'subtitle.srt';
-    const dlBtn = document.getElementById('stLibResDownloadBtn');
-    if (dlBtn) dlBtn.style.display = result?.srt_content ? '' : 'none';
+    if (pathWrap) pathWrap.style.display = '';
     stLibGoToStep(4);
     showToast('字幕翻译完成！', 'success');
 }
